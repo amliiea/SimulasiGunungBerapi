@@ -1,0 +1,1038 @@
+/* ==========================================================================
+   SIMULASI MITIGASI ERUPSI GUNUNG SEMERU - UNIFIED DESIGN SYSTEM
+   Standardized with Poppins Typography, Non-Overlapping Grid, and Frosted Glass
+   ========================================================================== */
+
+:root {
+    /* Brand & Accent Colors */
+    --color-lava-orange: #EA580C;
+    --color-volcanic-tangerine: #F97316;
+    --color-amber-warning: #F59E0B;
+    --color-danger-crimson: #EF4444;
+    --color-safe-emerald: #10B981;
+    --color-safe-dark: #059669;
+
+    /* Tints & Warm Backgrounds */
+    --color-peach-light: #FFF7ED;
+    --color-peach-tint: #FFEDD5;
+    --color-peach-border: #FDBA74;
+
+    /* Neutrals & Typography */
+    --color-slate-900: #0F172A;
+    --color-slate-800: #1E293B;
+    --color-slate-600: #475569;
+    --color-slate-400: #94A3B8;
+    --color-slate-200: #E2E8F0;
+    --color-slate-100: #F1F5F9;
+    --color-slate-50: #F8FAFC;
+
+    /* Glass Surfaces */
+    --surface-glass-card: rgba(255, 255, 255, 0.92);
+    --surface-white-pill: rgba(255, 255, 255, 0.96);
+    --surface-dark-hud: rgba(11, 15, 25, 0.93);
+
+    /* Elevation & Shadows */
+    --shadow-soft-card: 0 16px 40px rgba(15, 23, 42, 0.14);
+    --shadow-floating-pill: 0 12px 32px rgba(15, 23, 42, 0.12);
+    --shadow-deep-hud: 0 18px 45px rgba(0, 0, 0, 0.28);
+    --shadow-orange-glow: 0 12px 32px rgba(234, 88, 12, 0.25);
+
+    /* Single Unified Typography: Poppins */
+    --font-primary: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Base Reset & Box Sizing */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    max-height: 100vh;
+    overflow: hidden;
+    font-family: var(--font-primary);
+    background-color: var(--color-slate-900);
+    color: var(--color-slate-900);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ==========================================================================
+   VIDEO BACKGROUND LAYER
+   ========================================================================== */
+.video-background-wrapper {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1;
+    overflow: hidden;
+    background-color: #1e293b;
+}
+
+#bgVideo {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    min-width: 100%;
+    min-height: 100%;
+    width: auto;
+    height: auto;
+    transform: translate(-50%, -50%);
+    object-fit: cover;
+    transition: opacity 0.5s ease;
+}
+
+.video-overlay-gradient {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(15, 23, 42, 0.10) 0%, rgba(15, 23, 42, 0.40) 100%);
+    pointer-events: none;
+}
+
+.video-fallback {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, #60a5fa 0%, #38bdf8 30%, #4ade80 70%, #15803d 100%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+}
+
+/* ==========================================================================
+   VIEWPORT & SCREEN ROUTER
+   ========================================================================== */
+.app-viewport {
+    position: relative;
+    z-index: 10;
+    width: 100vw;
+    height: 100vh;
+    max-height: 100vh;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.screen-view {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    max-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.985);
+    transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    padding: 24px;
+    overflow: hidden;
+}
+
+.screen-view.active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: scale(1);
+}
+
+/* ==========================================================================
+   GLASSMORPHISM HERO CARD (FOR UI-1 & UI-3 TEXT READABILITY)
+   ========================================================================== */
+.glass-hero-card {
+    background: var(--surface-glass-card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 28px;
+    border: 1.5px solid rgba(255, 255, 255, 0.95);
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.16);
+    padding: 32px 42px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    max-width: 660px;
+    width: 100%;
+    margin-bottom: 76px; /* Safe breathing space above bottom bar */
+    transition: transform 0.25s ease;
+}
+
+/* Shared UI Pills & Badges */
+.floating-pill-bar {
+    background: var(--surface-white-pill);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: 9999px;
+    box-shadow: var(--shadow-floating-pill);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+}
+
+.badge-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 16px;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    font-family: var(--font-primary);
+}
+
+.orange-badge {
+    background: linear-gradient(135deg, var(--color-volcanic-tangerine), var(--color-lava-orange));
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);
+}
+
+.main-title {
+    font-size: clamp(26px, 3.2vw, 38px);
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: -0.6px;
+    color: var(--color-slate-900);
+    margin: 12px 0 8px;
+}
+
+.main-subtitle {
+    font-size: clamp(13px, 1.3vw, 15px);
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--color-slate-600);
+    margin-bottom: 22px;
+    max-width: 520px;
+}
+
+/* ==========================================================================
+   SCREEN 1: LANDING / START (UI-1)
+   ========================================================================== */
+.cta-gesture-card {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 16px 22px;
+    border-radius: 22px;
+    background: var(--color-peach-light);
+    border: 2px solid var(--color-peach-border);
+    box-shadow: 0 12px 30px rgba(249, 115, 22, 0.14);
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+    user-select: none;
+}
+
+.cta-gesture-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 36px rgba(249, 115, 22, 0.22);
+    border-color: var(--color-lava-orange);
+}
+
+.cta-gesture-card:active {
+    transform: translateY(0);
+}
+
+.cta-icon-box {
+    width: 70px;
+    height: 70px;
+    border-radius: 16px;
+    background: var(--color-peach-tint);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 1px solid rgba(253, 186, 116, 0.6);
+}
+
+.gesture-hand-svg {
+    width: 50px;
+    height: 50px;
+}
+
+.cta-text-content {
+    flex: 1;
+}
+
+.cta-title {
+    font-size: clamp(16px, 1.6vw, 19px);
+    font-weight: 800;
+    color: var(--color-slate-900);
+    letter-spacing: -0.3px;
+    margin-bottom: 4px;
+}
+
+.cta-description {
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--color-slate-600);
+}
+
+.cta-action-ring {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.ring-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+
+.ring-bg {
+    fill: none;
+    stroke: rgba(234, 88, 12, 0.15);
+    stroke-width: 3.5;
+}
+
+.ring-fill {
+    fill: none;
+    stroke: var(--color-lava-orange);
+    stroke-width: 3.5;
+    stroke-linecap: round;
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    transition: stroke-dashoffset 0.1s linear;
+}
+
+.ring-label {
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--color-lava-orange);
+    text-transform: uppercase;
+}
+
+/* UI-1 Bottom Guidance Bar */
+.bottom-guidance-bar {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px 26px;
+    gap: 18px;
+    z-index: 20;
+}
+
+.guidance-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--color-slate-800);
+}
+
+.guidance-icon {
+    width: 18px;
+    height: 18px;
+    color: var(--color-slate-800);
+}
+
+.guidance-label {
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: -0.2px;
+    white-space: nowrap;
+}
+
+.guidance-divider {
+    width: 1px;
+    height: 18px;
+    background-color: var(--color-slate-200);
+}
+
+/* ==========================================================================
+   SCREEN 2: SIMULATION HUD (MATCHES UI-2 ZONES)
+   ========================================================================== */
+#screenSimulation {
+    justify-content: space-between;
+    align-items: stretch;
+    padding: 0;
+}
+
+/* 1. Top Stepper / Breadcrumbs Bar */
+.top-stepper-bar {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 6px 14px;
+    gap: 8px;
+    z-index: 30;
+}
+
+.stepper-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 9999px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-slate-600);
+    transition: all 0.25s ease;
+}
+
+/* Checkmarks are strictly HIDDEN unless step is completed */
+.stepper-item .step-check-icon {
+    display: none;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-safe-emerald);
+}
+
+.stepper-item .step-check-icon svg {
+    width: 13px;
+    height: 13px;
+}
+
+.stepper-item.completed {
+    color: var(--color-slate-800);
+    font-weight: 600;
+}
+
+.stepper-item.completed .step-check-icon {
+    display: inline-flex;
+}
+
+.stepper-item.active-pill {
+    background: linear-gradient(135deg, var(--color-volcanic-tangerine), var(--color-lava-orange));
+    color: #ffffff !important;
+    font-weight: 700;
+    padding: 6px 16px;
+    box-shadow: 0 4px 14px rgba(234, 88, 12, 0.35);
+}
+
+.stepper-item.active-pill .step-check-icon {
+    display: none; /* Never show check on active ongoing step */
+}
+
+.stepper-arrow {
+    color: var(--color-slate-400);
+    font-size: 15px;
+    font-weight: 600;
+}
+
+/* 2. Top-Right Vision HUD Card */
+.vision-hud-container {
+    position: absolute;
+    top: 20px;
+    right: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    z-index: 30;
+}
+
+.vision-camera-card {
+    width: 220px;
+    background: var(--surface-dark-hud);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: var(--shadow-deep-hud);
+    overflow: hidden;
+    backdrop-filter: blur(12px);
+}
+
+.camera-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 10px;
+    background: rgba(0, 0, 0, 0.4);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.camera-badge-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.cam-dot-green {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #00FF99;
+    box-shadow: 0 0 8px #00FF99;
+}
+
+.cam-title-text {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #f1f5f9;
+}
+
+.cam-fps-text {
+    font-size: 10px;
+    font-weight: 600;
+    color: #94a3b8;
+}
+
+.camera-stream-viewport {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background-color: #030712;
+    overflow: hidden;
+}
+
+#webcam {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1);
+    opacity: 0.85;
+}
+
+#poseCanvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    transform: scaleX(-1);
+    pointer-events: none;
+}
+
+.camera-off-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: rgba(11, 15, 25, 0.95);
+    color: #94a3b8;
+    font-size: 11.5px;
+    font-weight: 600;
+}
+
+.camera-off-overlay svg {
+    width: 22px;
+    height: 22px;
+    color: #64748b;
+}
+
+/* Vision Telemetry Chips */
+.vision-telemetry-chips {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    width: 100%;
+}
+
+.telemetry-pill {
+    background: var(--surface-white-pill);
+    backdrop-filter: blur(14px);
+    border-radius: 9999px;
+    padding: 5px 12px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--color-slate-800);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+}
+
+.chip-icon {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
+.chip-icon.teal { color: #0284c7; }
+.chip-icon.green { color: var(--color-safe-dark); }
+.chip-icon.warning { color: var(--color-amber-warning); }
+
+/* ==========================================================================
+   HORIZONTAL BOTTOM GRID: PREVENTS OVERLAPPING BETWEEN INFO & GESTURE CARDS
+   ========================================================================== */
+.simulation-bottom-grid {
+    position: absolute;
+    bottom: 24px;
+    left: 24px;
+    right: 24px;
+    display: grid;
+    grid-template-columns: 410px 1fr;
+    gap: 20px;
+    align-items: end;
+    z-index: 25;
+    max-width: calc(100vw - 48px);
+}
+
+/* 3. Educational Hazard Card (Left Column) */
+.hazard-info-card {
+    background: var(--surface-glass-card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 22px;
+    padding: 20px 22px;
+    box-shadow: var(--shadow-soft-card);
+    border: 1.5px solid rgba(255, 255, 255, 0.85);
+    width: 100%;
+}
+
+.hazard-badge-wrapper {
+    margin-bottom: 8px;
+}
+
+.hazard-pill-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--color-peach-tint);
+    color: #9A3412;
+    padding: 4px 11px;
+    border-radius: 9999px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+
+.badge-icon-warning {
+    width: 13px;
+    height: 13px;
+    color: var(--color-volcanic-tangerine);
+}
+
+.hazard-title {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.4px;
+    color: var(--color-slate-900);
+    margin-bottom: 3px;
+}
+
+.hazard-radius-container {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.radius-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background-color: var(--color-lava-orange);
+}
+
+.radius-text {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--color-lava-orange);
+}
+
+.hazard-description {
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--color-slate-600);
+    margin-bottom: 12px;
+}
+
+.action-guidance-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--color-slate-50);
+    border: 1px solid var(--color-slate-200);
+    margin-bottom: 8px;
+}
+
+.shield-action-svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.action-eyebrow {
+    display: block;
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    color: var(--color-slate-900);
+    margin-bottom: 2px;
+}
+
+.action-body {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--color-slate-600);
+}
+
+.dispersion-direction-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    background: var(--color-peach-light);
+    border: 1px solid var(--color-peach-border);
+}
+
+.compass-svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.dispersion-label {
+    font-size: 12px;
+    color: var(--color-slate-800);
+}
+
+.dispersion-label strong {
+    color: var(--color-lava-orange);
+    font-weight: 700;
+}
+
+/* 4. Gesture Controller Card (Right Column) */
+.gesture-controller-card {
+    background: var(--surface-white-pill);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: 24px;
+    box-shadow: var(--shadow-floating-pill);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    padding: 14px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    width: 100%;
+}
+
+.gesture-controller-main {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+    min-width: 0;
+}
+
+.gesture-avatar-box {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: var(--color-peach-tint);
+    border: 1.5px solid var(--color-peach-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.gesture-silhouette-svg {
+    width: 36px;
+    height: 36px;
+}
+
+.gesture-command-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.gesture-eyebrow {
+    display: block;
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    color: var(--color-lava-orange);
+    margin-bottom: 2px;
+}
+
+.gesture-title {
+    font-size: 15.5px;
+    font-weight: 800;
+    color: var(--color-slate-900);
+    letter-spacing: -0.3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gesture-subtext {
+    font-size: 12px;
+    color: var(--color-slate-600);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gesture-progress-widget {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 200px;
+    flex-shrink: 0;
+}
+
+.progress-labels {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11.5px;
+}
+
+.progress-status-txt {
+    color: var(--color-slate-600);
+    font-weight: 500;
+}
+
+.progress-timer-txt {
+    color: var(--color-safe-dark);
+    font-weight: 700;
+}
+
+.progress-track-bg {
+    width: 100%;
+    height: 8px;
+    background: var(--color-slate-200);
+    border-radius: 9999px;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-fill-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #10B981, #059669);
+    border-radius: 9999px;
+    width: 0%;
+    transition: width 0.1s linear;
+}
+
+/* ==========================================================================
+   SCREEN 3: COMPLETION / COOLDOWN (UI-3)
+   ========================================================================= */
+.circular-countdown-container {
+    position: relative;
+    width: 160px;
+    height: 160px;
+    margin: 18px 0 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.countdown-svg-wrapper {
+    position: relative;
+    width: 150px;
+    height: 150px;
+}
+
+.countdown-svg {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+
+.countdown-bg-ring {
+    fill: #ffffff;
+    stroke: var(--color-slate-200);
+    stroke-width: 9;
+}
+
+.countdown-progress-ring {
+    fill: none;
+    stroke: var(--color-volcanic-tangerine);
+    stroke-width: 9;
+    stroke-linecap: round;
+    stroke-dasharray: 414.7;
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 1s linear;
+}
+
+.countdown-center-labels {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.countdown-number {
+    font-size: 44px;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--color-slate-900);
+    letter-spacing: -1px;
+}
+
+.countdown-unit {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-slate-600);
+    margin-top: 2px;
+}
+
+.btn-restart-now {
+    margin-top: 6px;
+    padding: 8px 22px;
+    border-radius: 9999px;
+    background: var(--surface-white-pill);
+    border: 1.5px solid var(--color-slate-200);
+    color: var(--color-slate-800);
+    font-size: 12.5px;
+    font-weight: 700;
+    font-family: var(--font-primary);
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    transition: all 0.2s ease;
+}
+
+.btn-restart-now:hover {
+    background: #ffffff;
+    border-color: var(--color-volcanic-tangerine);
+    color: var(--color-lava-orange);
+    transform: translateY(-2px);
+}
+
+/* UI-3 Bottom Siaga Card */
+.bottom-siaga-card {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 24px;
+    gap: 14px;
+    max-width: 620px;
+    width: calc(100% - 48px);
+    z-index: 20;
+}
+
+.siaga-icon-box {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: var(--color-peach-tint);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.shield-check-svg {
+    width: 22px;
+    height: 22px;
+}
+
+.siaga-text-box {
+    flex: 1;
+}
+
+.siaga-title {
+    font-size: 14.5px;
+    font-weight: 800;
+    color: var(--color-slate-900);
+    margin-bottom: 2px;
+}
+
+.siaga-description {
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--color-slate-600);
+}
+
+/* ==========================================================================
+   TOP-LEFT COMPACT DEVELOPER TOOLBAR (NON-INTRUSIVE)
+   ========================================================================== */
+.dev-toolbar-top {
+    position: fixed;
+    top: 20px;
+    left: 24px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(10px);
+    padding: 5px 12px;
+    border-radius: 9999px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    font-size: 11px;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+}
+
+.dev-btn, .dev-dist-btn {
+    background: rgba(255, 255, 255, 0.12);
+    color: #f1f5f9;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: var(--font-primary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.dev-btn:hover, .dev-dist-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+}
+
+.dev-btn.accent {
+    background: var(--color-lava-orange);
+    border-color: var(--color-lava-orange);
+    color: #ffffff;
+}
+
+.dev-distances {
+    display: flex;
+    gap: 3px;
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN & OVERFLOW SAFEGUARDS
+   ========================================================================== */
+@media (max-width: 1024px) {
+    .simulation-bottom-grid {
+        grid-template-columns: 360px 1fr;
+        gap: 16px;
+    }
+    .gesture-controller-card {
+        padding: 12px 18px;
+    }
+}
+
+@media (max-width: 840px) {
+    .simulation-bottom-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        bottom: 16px;
+        left: 16px;
+        right: 16px;
+    }
+    .top-stepper-bar {
+        width: calc(100% - 32px);
+        overflow-x: auto;
+        justify-content: flex-start;
+    }
+    .dev-toolbar-top {
+        display: none;
+    }
+}
