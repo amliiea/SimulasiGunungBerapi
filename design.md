@@ -128,9 +128,10 @@ Sesuai arahan desain, seluruh bagian antarmuka menggunakan keluarga font **Poppi
 
 ---
 
-### 4.4. Penempatan Toolbar Pengujian / Demo
-* Toolbar kontrol demo (`Kamera`, `Audio`, `Pilihan Jarak`, dan `Lewati Gestur`) dipindahkan ke **sudut kiri atas** (`top: 20px; left: 24px`) dengan format minimalis dan kompak (*floating compact pill*).
-* Hal ini mencegah tombol kontrol menutupi kartu informasi edukasi dan bilah gestur di bagian bawah pada semua layar.
+### 4.4. Penempatan Toolbar Pengujian / Demo (Collapsible Menu — Zero Overlap)
+* Toolbar kontrol demo (`Kamera`, `Audio`, `Pilihan Jarak`, dan `Lewati Gestur`) dirancang sebagai **tombol menu lipat (*collapsible dropdown*)** di sudut kiri atas (`top: 18px; left: 20px`).
+* Dalam keadaan *default*, kontrol ini hanya berupa tombol pill kecil (`[⚙️ Demo]`, lebar ~76px), sehingga menyisakan ratusan piksel ruang kosong terhadap bilah stepper tengah (*Top Stepper*) dan tidak pernah bertumpukan.
+* Saat ditekan atau dengan menekan tombol keyboard `[D]`, menu akan membuka popover vertikal ke bawah yang rapi tanpa menyentuh komponen interaksi lainnya.
 
 ---
 

@@ -18,17 +18,47 @@
         <div id="videoFallback" class="video-fallback"></div>
     </div>
 
-    <!-- Top-Left Compact Developer & Demo Controls (Positioned away from interaction cards) -->
-    <aside class="dev-toolbar-top" id="devToolbar">
-        <button id="btnToggleCamera" class="dev-btn" title="Aktifkan/Matikan Kamera (C)">📷 Kamera: <span id="devCamStatus">Mati</span></button>
-        <button id="btnToggleSound" class="dev-btn" title="Nyalakan/Bisukan Suara">🔊 Audio</button>
-        <div class="dev-distances">
-            <button class="dev-dist-btn" data-dist="5" title="Simulasi Jarak 5 km">1: 5 km</button>
-            <button class="dev-dist-btn" data-dist="13" title="Simulasi Jarak 13 km">2: 13 km</button>
-            <button class="dev-dist-btn" data-dist="17" title="Simulasi Jarak 17 km">3: 17 km</button>
-            <button class="dev-dist-btn" data-dist="21" title="Simulasi Jarak >20 km">4: >20 km</button>
+    <!-- Top-Left Collapsible Demo & Testing Menu (Zero Overlap with Top Stepper) -->
+    <aside class="dev-menu-container" id="devMenuContainer">
+        <button class="dev-menu-toggle-btn" id="btnDevMenuToggle" title="Buka Kontrol Demo (Shortcut: D)" aria-expanded="false" aria-controls="devMenuDropdown">
+            <span class="dev-toggle-icon">⚙️</span>
+            <span class="dev-toggle-label">Demo</span>
+        </button>
+
+        <div class="dev-menu-dropdown" id="devMenuDropdown">
+            <div class="dev-dropdown-header">
+                <strong>Kontrol Pengujian</strong>
+                <button class="dev-dropdown-close" id="btnDevMenuClose" title="Tutup Menu">✕</button>
+            </div>
+
+            <div class="dev-dropdown-content">
+                <button id="btnToggleCamera" class="dev-action-row" title="Shortcut keyboard: C">
+                    <span>📷 Kamera</span>
+                    <span class="dev-badge-status" id="devCamStatus">Mati</span>
+                </button>
+
+                <button id="btnToggleSound" class="dev-action-row">
+                    <span>🔊 Audio Video</span>
+                    <span class="dev-badge-status" id="devSoundStatus">Mati</span>
+                </button>
+
+                <div class="dev-section-title">Simulasi Jarak Evakuasi:</div>
+                <div class="dev-distances-grid">
+                    <button class="dev-dist-btn" data-dist="5">1: 5 km</button>
+                    <button class="dev-dist-btn" data-dist="13">2: 13 km</button>
+                    <button class="dev-dist-btn" data-dist="17">3: 17 km</button>
+                    <button class="dev-dist-btn" data-dist="21">4: >20 km</button>
+                </div>
+
+                <button id="btnDevSkip" class="dev-skip-action-btn" title="Shortcut: Tekan Spasi">
+                    <span>Lewati Gestur</span>
+                    <kbd>Spasi ⏭️</kbd>
+                </button>
+            </div>
+            <div class="dev-dropdown-footer">
+                <span>Pintasan: <b>[Spasi]</b> Lanjut &bull; <b>[C]</b> Kamera &bull; <b>[D]</b> Menu &bull; <b>[R]</b> Reset</span>
+            </div>
         </div>
-        <button id="btnDevSkip" class="dev-btn accent" title="Lewati Gestur Saat Ini (atau tekan Spasi)">Lewati Gestur ⏭️</button>
     </aside>
 
     <!-- Main Viewport -->

@@ -182,10 +182,14 @@ const cooldownNumber = document.getElementById("cooldownNumber");
 const cooldownProgressRing = document.getElementById("cooldownProgressRing");
 const btnRestartNow = document.getElementById("btnRestartNow");
 
-// Dev Toolbar
+// Dev Menu Elements
+const devMenuContainer = document.getElementById("devMenuContainer");
+const btnDevMenuToggle = document.getElementById("btnDevMenuToggle");
+const btnDevMenuClose = document.getElementById("btnDevMenuClose");
 const btnToggleCamera = document.getElementById("btnToggleCamera");
 const devCamStatus = document.getElementById("devCamStatus");
 const btnToggleSound = document.getElementById("btnToggleSound");
+const devSoundStatus = document.getElementById("devSoundStatus");
 const btnDevSkip = document.getElementById("btnDevSkip");
 const distButtons = document.querySelectorAll(".dev-dist-btn");
 
@@ -243,10 +247,27 @@ function setupEventListeners() {
         handleGestureSuccess();
     });
 
-    // Dev Toolbar Controls
-    btnToggleCamera.addEventListener("click", toggleCamera);
-    btnToggleSound.addEventListener("click", toggleSound);
-    btnDevSkip.addEventListener("click", () => handleGestureSuccess());
+    // Dev Menu Toggle & Outside Click
+    btnDevMenuToggle?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        toggleDevMenu();
+    });
+
+    btnDevMenuClose?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        closeDevMenu();
+    });
+
+    document.addEventListener("click", (e) => {
+        if (devMenuContainer && !devMenuContainer.contains(e.target)) {
+            closeDevMenu();
+        }
+    });
+
+    // Dev Toolbar Actions
+    btnToggleCamera?.addEventListener("click", toggleCamera);
+    btnToggleSound?.addEventListener("click", toggleSound);
+    btnDevSkip?.addEventListener("click", () => handleGestureSuccess());
 
     distButtons.forEach(btn => {
         btn.addEventListener("click", () => {
@@ -291,10 +312,24 @@ function handleKeyboardShortcut(e) {
         case "c":
             toggleCamera();
             break;
+        case "d":
+            toggleDevMenu();
+            break;
         case "r":
             resetSimulation();
             break;
     }
+}
+
+function toggleDevMenu() {
+    devMenuContainer?.classList.toggle("open");
+    const isOpen = devMenuContainer?.classList.contains("open");
+    btnDevMenuToggle?.setAttribute("aria-expanded", String(isOpen));
+}
+
+function closeDevMenu() {
+    devMenuContainer?.classList.remove("open");
+    btnDevMenuToggle?.setAttribute("aria-expanded", "false");
 }
 
 /* ==========================================================================
@@ -366,7 +401,10 @@ async function startCamera() {
 
         cameraActive = true;
         camOffOverlay.style.display = "none";
-        devCamStatus.textContent = "Aktif";
+        if (devCamStatus) {
+            devCamStatus.textContent = "Aktif";
+            devCamStatus.style.color = "#10B981";
+        }
         hudEngineLabel.textContent = "MediaPipe Pose v0.5";
 
         lastVideoTime = -1;
@@ -374,7 +412,10 @@ async function startCamera() {
     } catch (err) {
         console.error("Camera activation error:", err);
         camOffOverlay.style.display = "flex";
-        devCamStatus.textContent = "Gagal";
+        if (devCamStatus) {
+            devCamStatus.textContent = "Gagal";
+            devCamStatus.style.color = "#EF4444";
+        }
         hudEngineLabel.textContent = "Kamera Tidak Terhubung";
         alert("Kamera tidak dapat diakses atau diblokir peramban. Anda tetap dapat menggunakan keyboard atau tombol aksi untuk simulasi.");
     } finally {
@@ -395,7 +436,10 @@ function stopCamera() {
     currentHands = [];
     poseCtx.clearRect(0, 0, poseCanvas.width, poseCanvas.height);
     camOffOverlay.style.display = "flex";
-    devCamStatus.textContent = "Mati";
+    if (devCamStatus) {
+        devCamStatus.textContent = "Mati";
+        devCamStatus.style.color = "#94a3b8";
+    }
 }
 
 function toggleCamera() {
@@ -843,7 +887,10 @@ function playBackgroundVideo(src, loop = true, onEnded = null) {
 function toggleSound() {
     audioMuted = !audioMuted;
     bgVideo.muted = audioMuted;
-    btnToggleSound.textContent = audioMuted ? "🔇 Audio Mati" : "🔊 Audio Aktif";
+    if (devSoundStatus) {
+        devSoundStatus.textContent = audioMuted ? "Mati" : "Aktif";
+        devSoundStatus.style.color = audioMuted ? "#94a3b8" : "#10B981";
+    }
 }
 
 /* ==========================================================================
