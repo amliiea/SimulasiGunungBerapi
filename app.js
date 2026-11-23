@@ -674,7 +674,7 @@ async function warmupMediaPipe() {
     if (mediapipeReady || mediaPipeInitPromise) return mediaPipeInitPromise;
 
     mediaPipeInitPromise = (async () => {
-        hudEngineLabel.textContent = "Memuat MediaPipe...";
+        if (hudEngineLabel) hudEngineLabel.textContent = "Memuat MediaPipe...";
         const vision = await FilesetResolver.forVisionTasks(MEDIAPIPE_WASM_URL);
 
         const pose = await PoseLandmarker.createFromOptions(vision, {
@@ -704,7 +704,7 @@ async function warmupMediaPipe() {
         poseLandmarker = pose;
         handLandmarker = hand;
         mediapipeReady = true;
-        hudEngineLabel.textContent = "MediaPipe Pose v0.5";
+        if (hudEngineLabel) hudEngineLabel.textContent = "MediaPipe Pose v0.5";
         console.log("MediaPipe Vision successfully loaded.");
     })();
 
@@ -714,7 +714,7 @@ async function warmupMediaPipe() {
 async function startCamera() {
     if (cameraActive || cameraStarting) return;
     cameraStarting = true;
-    hudEngineLabel.textContent = "Mengaktifkan Kamera...";
+    if (hudEngineLabel) hudEngineLabel.textContent = "Mengaktifkan Kamera...";
 
     try {
         await warmupMediaPipe();
@@ -740,7 +740,7 @@ async function startCamera() {
             devCamStatus.textContent = "Aktif";
             devCamStatus.style.color = "#10B981";
         }
-        hudEngineLabel.textContent = "MediaPipe Pose v0.5";
+        if (hudEngineLabel) hudEngineLabel.textContent = "MediaPipe Pose v0.5";
 
         if (!calibrationInstructionComplete) {
             playCalibrationInstruction();
@@ -755,7 +755,7 @@ async function startCamera() {
             devCamStatus.textContent = "Gagal";
             devCamStatus.style.color = "#EF4444";
         }
-        hudEngineLabel.textContent = "Kamera Tidak Terhubung";
+        if (hudEngineLabel) hudEngineLabel.textContent = "Kamera Tidak Terhubung";
         alert("Kamera tidak dapat diakses atau diblokir peramban. Anda tetap dapat menggunakan keyboard atau tombol aksi untuk simulasi.");
     } finally {
         cameraStarting = false;

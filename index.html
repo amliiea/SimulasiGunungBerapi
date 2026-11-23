@@ -179,6 +179,14 @@
             <!-- 2. Top-Right Vision / Camera HUD Widget -->
             <div class="vision-hud-container" id="visionHudContainer">
                 <div class="vision-camera-card">
+                    <div class="camera-card-header">
+                        <div class="camera-badge-left">
+                            <span class="cam-dot-green"></span>
+                            <span class="cam-title-text" id="hudEngineLabel">MediaPipe Pose v0.5</span>
+                        </div>
+                        <span class="cam-fps-text" id="hudFpsLabel">720p • 30fps</span>
+                    </div>
+
                     <div class="camera-stream-viewport">
                         <video id="webcam" autoplay muted playsinline></video>
                         <canvas id="poseCanvas"></canvas>
