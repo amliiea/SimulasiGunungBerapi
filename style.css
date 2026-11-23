@@ -1025,7 +1025,7 @@ html.from-opening body {
 
 #gestureControllerBar {
     position: absolute;
-    top: 202px;
+    top: 218px;
     right: 24px;
     z-index: 25;
     width: min(240px, calc(100vw - 32px));
