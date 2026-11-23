@@ -21,22 +21,6 @@
                 <div class="opening-caption" aria-live="polite" aria-atomic="true">
                     <p id="openingCaption"></p>
                 </div>
-                <!-- Touchless Gesture Trigger Pill -->
-                <div class="opening-gesture-pill" id="openingGesturePill">
-                    <div class="gesture-pill-ring">
-                        <svg class="ring-svg" viewBox="0 0 36 36">
-                            <circle class="ring-bg" cx="18" cy="18" r="14"/>
-                            <circle class="ring-fill" id="openingRingFill" cx="18" cy="18" r="14"/>
-                        </svg>
-                        <svg class="gesture-pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M14 9V5a2 2 0 0 0-4 0v4"/>
-                            <path d="M10 5V3a2 2 0 0 1 4 0v2"/>
-                            <path d="M18 11V8a2 2 0 0 0-4 0v3"/>
-                            <path d="M10 10.5V14a4 4 0 0 0 8 0v-3"/>
-                        </svg>
-                    </div>
-                    <span class="gesture-pill-text" id="openingGestureText">Angkat 2 Jari atau Klik Maskot</span>
-                </div>
             </div>
 
             <div class="opening-mascot">
@@ -66,7 +50,12 @@
         <audio id="openingAudio" preload="auto" aria-hidden="true">
             <source src="assets/Audio/01.%20VO_01_Pembukaan.mp3" type="audio/mpeg">
         </audio>
-        <video id="openingWebcam" autoplay muted playsinline style="display: none;"></video>
+
+        <!-- Touchless Gesture Floating Hint Pill -->
+        <div class="touchless-indicator" id="touchlessIndicator">
+            <span class="touchless-dot"></span>
+            <span class="touchless-text" id="touchlessText">Arahkan 2 jari ke maskot &bull; Rapatkan untuk klik</span>
+        </div>
     </main>
     <script type="module" src="pembukaan.js"></script>
 </body>

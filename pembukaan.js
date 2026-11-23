@@ -1,21 +1,14 @@
 import { FilesetResolver, HandLandmarker } from "./assets/mediapipe/vision_bundle.mjs";
-import { detectPeaceGesture } from "./gesture3.js";
+
+const MEDIAPIPE_WASM_URL = "./assets/mediapipe/wasm";
+const HAND_MODEL_URL = "./assets/models/hand_landmarker.task";
 
 const audio = document.getElementById("openingAudio");
 const caption = document.getElementById("openingCaption");
 const mascot = document.querySelector(".opening-mascot");
 const mascotTrigger = document.getElementById("mascotTrigger");
 const openingScreen = document.querySelector(".opening-screen");
-const openingWebcam = document.getElementById("openingWebcam");
-const openingGesturePill = document.getElementById("openingGesturePill");
-const openingRingFill = document.getElementById("openingRingFill");
-const openingGestureText = document.getElementById("openingGestureText");
-
-const MEDIAPIPE_WASM_URL = "./assets/mediapipe/wasm";
-const HAND_MODEL_URL = "./assets/models/hand_landmarker.task";
-const GESTURE_HOLD_DURATION_MS = 1400; // 1.4 detik tahan dua jari
-const RING_CIRCUMFERENCE = 88; // 2 * PI * 14 ~= 88
-
+const touchlessIndicator = document.getElementById("touchlessIndicator");
 const CAPTION_SWITCH_DELAY_MS = 100;
 const PAGE_TRANSITION_MS = 600;
 const SIMULATION_PROMPT_AUDIO_SRC = "assets/Audio/Ayo%20coba%20simulasi.mp3";
@@ -36,116 +29,208 @@ let simulationPromptNeedsUserGesture = false;
 let pageTransitionStarted = false;
 
 /* ==========================================================================
-   TOUCHLESS GESTURE ENGINE (MEDIA PIPE PEACE SIGN)
+   TOUCHLESS GESTURE TRACKING (2 FINGERS HOVER & PINCH CLICK)
    ========================================================================== */
-let openingCameraStream = null;
-let openingHandLandmarker = null;
-let gestureHoldStart = null;
-let animationFrameId = null;
+let handLandmarker = null;
+let touchlessVideo = null;
+let touchlessStream = null;
+let touchlessAnimFrame = null;
+let cursorEl = null;
+let cursorX = window.innerWidth / 2;
+let cursorY = window.innerHeight / 2;
+let isHoveringMascot = false;
+let dwellStartTime = null;
+const DWELL_CLICK_TIME_MS = 1800; // Auto-click jika ditahan 1.8 detik di atas maskot
+let hasGestureClicked = false;
 
-function updateGestureProgress(fraction) {
-    if (!openingRingFill) return;
-    const clamped = Math.max(0, Math.min(1, fraction));
-    const offset = RING_CIRCUMFERENCE * (1 - clamped);
-    openingRingFill.style.strokeDashoffset = offset;
-    if (openingGesturePill) {
-        openingGesturePill.classList.toggle("is-active", clamped > 0);
-    }
+function initTouchlessCursor() {
+    cursorEl = document.createElement("div");
+    cursorEl.id = "virtualCursor";
+    cursorEl.className = "virtual-cursor";
+    cursorEl.innerHTML = `
+        <div class="cursor-dot"></div>
+        <div class="cursor-ring">
+            <svg class="cursor-dwell-svg" viewBox="0 0 44 44">
+                <circle class="cursor-dwell-bg" cx="22" cy="22" r="18"/>
+                <circle class="cursor-dwell-fill" cx="22" cy="22" r="18"/>
+            </svg>
+        </div>
+    `;
+    document.body.appendChild(cursorEl);
 }
 
-async function initOpeningCamera() {
+async function startTouchless() {
+    initTouchlessCursor();
+
+    touchlessVideo = document.createElement("video");
+    touchlessVideo.autoplay = true;
+    touchlessVideo.muted = true;
+    touchlessVideo.playsInline = true;
+    touchlessVideo.style.display = "none";
+    document.body.appendChild(touchlessVideo);
+
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" },
+        touchlessStream = await navigator.mediaDevices.getUserMedia({
+            video: { width: 640, height: 480, facingMode: "user" },
             audio: false
         });
-        openingCameraStream = stream;
-        openingWebcam.srcObject = stream;
-        await openingWebcam.play();
+        touchlessVideo.srcObject = touchlessStream;
+        await touchlessVideo.play();
 
         const vision = await FilesetResolver.forVisionTasks(MEDIAPIPE_WASM_URL);
-        openingHandLandmarker = await HandLandmarker.createFromOptions(vision, {
+        handLandmarker = await HandLandmarker.createFromOptions(vision, {
             baseOptions: {
                 modelAssetPath: HAND_MODEL_URL,
                 delegate: "CPU"
             },
             runningMode: "VIDEO",
-            numHands: 2,
+            numHands: 1,
             minHandDetectionConfidence: 0.45,
             minHandPresenceConfidence: 0.45,
             minTrackingConfidence: 0.45
         });
 
-        if (openingGestureText) {
-            openingGestureText.textContent = "Angkat 2 Jari atau Klik Maskot";
-        }
-        animationFrameId = requestAnimationFrame(detectOpeningGestureLoop);
+        detectTouchlessLoop();
     } catch (err) {
-        console.warn("Kamera tidak aktif untuk gesture pembukaan, gunakan klik mouse:", err);
-        if (openingGestureText) {
-            openingGestureText.textContent = "Klik Maskot untuk Mulai";
-        }
+        console.warn("Touchless Hand Detection tidak dapat diinisialisasi (kamera sibuk/ditolak). Fallback mouse tetap aktif.", err);
+        if (touchlessIndicator) touchlessIndicator.classList.add("is-hidden");
+    }
+}
+
+function stopTouchless() {
+    if (touchlessAnimFrame) {
+        cancelAnimationFrame(touchlessAnimFrame);
+        touchlessAnimFrame = null;
+    }
+    if (touchlessStream) {
+        touchlessStream.getTracks().forEach(track => track.stop());
+        touchlessStream = null;
+    }
+    if (cursorEl) {
+        cursorEl.remove();
+        cursorEl = null;
+    }
+    if (touchlessVideo) {
+        touchlessVideo.remove();
+        touchlessVideo = null;
     }
 }
 
 let lastVideoTime = -1;
-function detectOpeningGestureLoop() {
-    if (narrationStarted) {
-        stopOpeningCamera();
-        return;
-    }
+function detectTouchlessLoop() {
+    if (pageTransitionStarted) return;
 
     try {
-        if (openingWebcam && openingWebcam.readyState >= 2 && openingWebcam.currentTime !== lastVideoTime) {
-            lastVideoTime = openingWebcam.currentTime;
+        if (touchlessVideo && touchlessVideo.readyState >= 2 && touchlessVideo.currentTime !== lastVideoTime) {
+            lastVideoTime = touchlessVideo.currentTime;
             const now = performance.now();
-            const results = openingHandLandmarker.detectForVideo(openingWebcam, now);
-            const isPeace = results.landmarks && detectPeaceGesture(results.landmarks);
+            const results = handLandmarker.detectForVideo(touchlessVideo, now);
 
-            if (isPeace) {
-                if (!gestureHoldStart) {
-                    gestureHoldStart = now;
+            if (results && results.landmarks && results.landmarks.length > 0) {
+                const lm = results.landmarks[0];
+                const indexTip = lm[8];
+                const thumbTip = lm[4];
+                const middleTip = lm[12];
+
+                const distThumb = Math.hypot(indexTip.x - thumbTip.x, indexTip.y - thumbTip.y);
+                const distMiddle = Math.hypot(indexTip.x - middleTip.x, indexTip.y - middleTip.y);
+
+                let isPinching = false;
+                let midX = 0;
+                let midY = 0;
+
+                if (distMiddle < distThumb) {
+                    midX = (indexTip.x + middleTip.x) / 2;
+                    midY = (indexTip.y + middleTip.y) / 2;
+                    isPinching = distMiddle < 0.050;
+                } else {
+                    midX = (indexTip.x + thumbTip.x) / 2;
+                    midY = (indexTip.y + thumbTip.y) / 2;
+                    isPinching = distThumb < 0.046;
                 }
-                const elapsed = now - gestureHoldStart;
-                const progress = Math.min(1, elapsed / GESTURE_HOLD_DURATION_MS);
-                updateGestureProgress(progress);
-                if (openingGestureText) openingGestureText.textContent = "Tahan 2 jari...";
 
-                if (elapsed >= GESTURE_HOLD_DURATION_MS) {
-                    updateGestureProgress(1);
-                    if (openingGestureText) openingGestureText.textContent = "Memulai...";
-                    stopOpeningCamera();
-                    mascotTrigger.click();
-                    return;
+                // Cermin X agar intuitif seperti melihat cermin
+                const targetX = (1 - midX) * window.innerWidth;
+                const targetY = midY * window.innerHeight;
+
+                cursorX += (targetX - cursorX) * 0.42;
+                cursorY += (targetY - cursorY) * 0.42;
+
+                if (cursorEl) {
+                    cursorEl.style.transform = `translate3d(${cursorX}px, ${cursorY}px, 0)`;
+                    cursorEl.classList.add("is-active");
+                    cursorEl.classList.toggle("is-pinching", isPinching);
+                }
+
+                const rect = mascotTrigger.getBoundingClientRect();
+                const inMascot = cursorX >= (rect.left - 30) && cursorX <= (rect.right + 30) &&
+                                 cursorY >= (rect.top - 30) && cursorY <= (rect.bottom + 30);
+
+                if (inMascot && !hasGestureClicked) {
+                    if (!isHoveringMascot) {
+                        isHoveringMascot = true;
+                        dwellStartTime = performance.now();
+                        mascotTrigger.classList.add("is-touchless-hovered");
+                        if (cursorEl) cursorEl.classList.add("is-hovering");
+                    }
+
+                    const elapsed = performance.now() - dwellStartTime;
+                    const progress = Math.min(1, elapsed / DWELL_CLICK_TIME_MS);
+                    const dwellFill = cursorEl?.querySelector(".cursor-dwell-fill");
+                    if (dwellFill) {
+                        dwellFill.style.strokeDashoffset = 113.1 * (1 - progress);
+                    }
+
+                    if (isPinching || progress >= 1) {
+                        triggerTouchlessClick();
+                    }
+                } else {
+                    if (isHoveringMascot) {
+                        isHoveringMascot = false;
+                        dwellStartTime = null;
+                        mascotTrigger.classList.remove("is-touchless-hovered");
+                        if (cursorEl) cursorEl.classList.remove("is-hovering");
+                        const dwellFill = cursorEl?.querySelector(".cursor-dwell-fill");
+                        if (dwellFill) dwellFill.style.strokeDashoffset = 113.1;
+                    }
                 }
             } else {
-                gestureHoldStart = null;
-                updateGestureProgress(0);
-                if (openingGestureText) openingGestureText.textContent = "Angkat 2 Jari atau Klik Maskot";
+                if (cursorEl) {
+                    cursorEl.classList.remove("is-active", "is-hovering", "is-pinching");
+                }
+                if (isHoveringMascot) {
+                    isHoveringMascot = false;
+                    dwellStartTime = null;
+                    mascotTrigger.classList.remove("is-touchless-hovered");
+                }
             }
         }
     } catch (e) {
-        console.warn("Hand tracking frame error:", e);
+        console.error("Touchless loop error:", e);
     }
 
-    if (!narrationStarted) {
-        animationFrameId = requestAnimationFrame(detectOpeningGestureLoop);
+    if (!pageTransitionStarted && !hasGestureClicked) {
+        touchlessAnimFrame = requestAnimationFrame(detectTouchlessLoop);
     }
 }
 
-function stopOpeningCamera() {
-    if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-        animationFrameId = null;
-    }
-    if (openingCameraStream) {
-        openingCameraStream.getTracks().forEach(track => track.stop());
-        openingCameraStream = null;
-    }
-}
+function triggerTouchlessClick() {
+    if (hasGestureClicked) return;
+    hasGestureClicked = true;
 
-window.addEventListener("beforeunload", stopOpeningCamera);
-initOpeningCamera();
+    if (cursorEl) cursorEl.classList.add("is-clicked");
+    mascotTrigger.classList.add("is-clicked-pulse");
+
+    if (touchlessIndicator) {
+        touchlessIndicator.classList.add("is-hidden");
+    }
+
+    mascotTrigger.click();
+
+    setTimeout(() => {
+        stopTouchless();
+    }, 800);
+}
 
 function updateCaption() {
     if (!openingNarrationActive) {
@@ -179,6 +264,7 @@ function transitionToSimulation() {
     }
 
     pageTransitionStarted = true;
+    stopTouchless();
     openingScreen.classList.add("is-leaving");
     window.setTimeout(() => {
         window.location.href = "index.html?fromOpening=1";
@@ -250,11 +336,6 @@ mascotTrigger.addEventListener("click", () => {
     }
 
     narrationStarted = true;
-    stopOpeningCamera();
-    if (openingGesturePill) {
-        openingGesturePill.style.opacity = "0";
-        setTimeout(() => { openingGesturePill.style.display = "none"; }, 300);
-    }
     mascotTrigger.setAttribute("aria-pressed", "true");
     mascot.classList.add("has-started");
 
@@ -263,15 +344,11 @@ mascotTrigger.addEventListener("click", () => {
         narrationStarted = false;
         mascotTrigger.setAttribute("aria-pressed", "false");
         mascot.classList.remove("has-started");
-        if (openingGesturePill) {
-            openingGesturePill.style.display = "inline-flex";
-            openingGesturePill.style.opacity = "1";
-        }
     });
 });
 
-window.addEventListener("keydown", event => {
-    if (event.key === " " || event.key === "Enter") {
-        mascotTrigger.click();
-    }
-});
+if (document.readyState === "loading") {
+    window.addEventListener("DOMContentLoaded", startTouchless);
+} else {
+    startTouchless();
+}
