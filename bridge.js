@@ -30,10 +30,23 @@ wss.on('connection', ws => ws.send(JSON.stringify(lastMessage)));
 async function findArduinoPort() {
     if (FIXED_PORT) return FIXED_PORT;
     const ports = await SerialPort.list();
-    const match = ports.find(p =>
-        /usbmodem|usbserial|wchusbserial|ttyACM|ttyUSB|COM\d+/i.test(p.path)
-    );
-    return match ? match.path : null;
+
+    // 1. Prioritaskan perangkat USB fisik asli (bukan link Bluetooth)
+    const usbMatch = ports.find(p => {
+        const desc = ((p.friendlyName || '') + ' ' + (p.pnpId || '')).toLowerCase();
+        const isBluetooth = desc.includes('bluetooth') || desc.includes('bthenum');
+        const isUsb = Boolean(p.vendorId) || /usb/i.test(p.pnpId || '') || /usbmodem|usbserial|wchusbserial|ttyACM|ttyUSB/i.test(p.path);
+        return isUsb && !isBluetooth;
+    });
+    if (usbMatch) return usbMatch.path;
+
+    // 2. Fallback: Port COM apa pun asalkan bukan Bluetooth
+    const fallbackMatch = ports.find(p => {
+        const desc = ((p.friendlyName || '') + ' ' + (p.pnpId || '')).toLowerCase();
+        const isBluetooth = desc.includes('bluetooth') || desc.includes('bthenum');
+        return !isBluetooth && /COM\d+|usbmodem|usbserial|wchusbserial|ttyACM|ttyUSB/i.test(p.path);
+    });
+    return fallbackMatch ? fallbackMatch.path : null;
 }
 
 function handleLine(line) {

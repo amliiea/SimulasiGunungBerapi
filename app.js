@@ -23,7 +23,7 @@ import {
     getZoneFromDistance,
     isSensorConnected,
     ZONES as SENSOR_ZONES
-} from "../sensor.js";
+} from "./sensor.js";
 
 /* ==========================================================================
    CONSTANTS & CONFIGURATION
@@ -569,6 +569,11 @@ function setupEventListeners() {
     // UI-2: Quick advance button
     btnQuickAdvance?.addEventListener("click", () => {
         handleGestureSuccess();
+    });
+
+    // UI-3: Click restart button
+    document.getElementById("btnRestartNow")?.addEventListener("click", () => {
+        resetSimulation();
     });
 
     // Dev Menu Toggle & Outside Click

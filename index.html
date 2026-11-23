@@ -262,42 +262,48 @@
         </section>
 
         <section class="screen-view closing-screen" id="screenClosing" aria-labelledby="closingTitle">
-            <div class="closing-card">
-                <svg class="closing-volcano" viewBox="0 0 180 132" aria-hidden="true">
-                    <g fill="none" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M77 47C77 33 89 24 102 24C114 24 124 33 124 44C124 56 114 65 102 65H86C73 65 62 56 62 43C62 31 71 22 83 22" fill="#e5e7eb" stroke="#b9c1cb" stroke-width="5"/>
-                        <path d="M86 39C86 27 96 18 108 18C120 18 130 28 130 40C130 51 121 60 110 60H96C86 60 78 52 78 42" fill="#fff" stroke="#b9c1cb" stroke-width="5"/>
-                        <path d="M85 58L102 34L118 58H85Z" fill="#f97316"/>
-                        <path d="M55 120L101 61L147 120C149 124 146 128 141 128H61C56 128 53 124 55 120Z" fill="#555b63" stroke="#454b54" stroke-width="5"/>
-                        <path d="M101 61L92 88L106 82L116 94L118 78L128 85L101 61Z" fill="#fb923c"/>
-                        <path d="M55 120H147" stroke="#343a43" stroke-width="5"/>
-                    </g>
-                </svg>
-                <span class="closing-badge">SIMULASI SELESAI</span>
-                <h1 id="closingTitle">Terima Kasih!</h1>
-                <p id="closingSubtitle">Simulasi akan kembali ke halaman awal dalam:</p>
-                <div class="closing-countdown" role="timer" aria-live="polite" aria-atomic="true">
-                    <svg class="closing-countdown-ring" viewBox="0 0 200 200" aria-hidden="true">
-                        <circle class="closing-countdown-track" cx="100" cy="100" r="78"></circle>
-                        <circle class="closing-countdown-progress" id="closingCountdownProgress" cx="100" cy="100" r="78"></circle>
-                    </svg>
-                    <span class="countdown-ray ray-one"></span>
-                    <span class="countdown-ray ray-two"></span>
-                    <span class="countdown-ray ray-three"></span>
-                    <div class="closing-countdown-content">
-                        <strong id="closingCountdown">20</strong>
-                        <span>detik</span>
+            <!-- Frosted Glassmorphism Hero Card (Ensures readability over video background) -->
+            <div class="glass-hero-card cooldown-card">
+                <!-- Badge Pill -->
+                <div class="badge-pill orange-badge">SIMULASI SELESAI</div>
+
+                <!-- Headline -->
+                <h1 class="main-title" id="closingTitle">Terima Kasih!</h1>
+                <p class="main-subtitle" id="closingSubtitle">Simulasi akan kembali ke halaman awal dalam:</p>
+
+                <!-- Pure Circular Countdown Meter -->
+                <div class="circular-countdown-container" id="cooldownClockContainer">
+                    <div class="countdown-svg-wrapper">
+                        <svg class="closing-countdown-ring" viewBox="0 0 200 200" aria-hidden="true">
+                            <circle class="closing-countdown-track" cx="100" cy="100" r="78"></circle>
+                            <circle class="closing-countdown-progress" id="closingCountdownProgress" cx="100" cy="100" r="78"></circle>
+                        </svg>
+
+                        <!-- Centered time counter -->
+                        <div class="closing-countdown-content">
+                            <strong class="countdown-number" id="closingCountdown">20</strong>
+                            <span class="countdown-unit">detik</span>
+                        </div>
                     </div>
                 </div>
-                <div class="closing-safety-note">
-                    <svg viewBox="0 0 48 48" aria-hidden="true">
-                        <path d="M24 4L42 11V23C42 34 34 41 24 44C14 41 6 34 6 23V11L24 4Z" fill="none" stroke="currentColor" stroke-width="3.5"/>
-                        <path d="M16 24L22 30L34 17" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+                <!-- Instant Restart Button -->
+                <button class="btn-restart-now" id="btnRestartNow" type="button">
+                    Mulai Ulang Sekarang
+                </button>
+            </div>
+
+            <!-- Bottom Floating Safety Card -->
+            <div class="floating-pill-bar bottom-siaga-card">
+                <div class="siaga-icon-box">
+                    <svg class="siaga-shield-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        <path d="M9 12l2 2 4-4"/>
                     </svg>
-                    <div>
-                        <strong>Tetap Waspada, Selalu Siaga</strong>
-                        <p>Kenali potensi bahaya, ikuti arahan petugas, dan perhatikan informasi resmi saat terjadi aktivitas vulkanik.</p>
-                    </div>
+                </div>
+                <div class="siaga-text-box">
+                    <h3 class="siaga-title">Tetap Waspada, Selalu Siaga</h3>
+                    <p class="siaga-description">Kenali potensi bahaya, ikuti arahan petugas, dan perhatikan informasi resmi saat terjadi aktivitas vulkanik.</p>
                 </div>
             </div>
         </section>
