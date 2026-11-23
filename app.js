@@ -244,7 +244,7 @@ const GESTURE_DETECTION_GRACE_MS = 600;
 let sensorStatusInterval = null;
 let sensorDistanceCm = null;
 let sensorZone = 0;
-let audioMuted = true;
+let audioMuted = false;
 let calibrationInstructionComplete =
     !new URLSearchParams(window.location.search).has("fromOpening");
 let activeNarration = null;
@@ -261,6 +261,16 @@ let closingRedirectTimeout = null;
 let gestureAvatarRequestId = 0;
 let lastPositionCueFile = null;
 let lastPositionCueAt = 0;
+
+const ZONE_KM_MAP = Object.freeze({
+    [STATES.HOME]: "5",
+    [STATES.BRIEFING]: "5",
+    [STATES.ERUPTION]: "5",
+    [STATES.ZONE1]: "5",
+    [STATES.ZONE2]: "13",
+    [STATES.ZONE3]: "17",
+    [STATES.SAFE]: "> 20"
+});
 
 // Video player management
 let activeVideoRequestId = 0;
@@ -283,12 +293,11 @@ window.addEventListener("DOMContentLoaded", () => {
         processZonePosition();
     }, 500);
 
-    if (!calibrationInstructionComplete) {
-        landingCtaTitle.textContent = "Menyiapkan Instruksi...";
-        landingCtaDescription.textContent = "Instruksi akan diputar otomatis saat kamera aktif.";
-        txtHoldStatus.textContent = "Menunggu kamera aktif...";
-        txtHoldCounter.textContent = "Aktifkan kamera lewat menu Demo";
+    if (devSoundStatus) {
+        devSoundStatus.textContent = "Aktif";
+        devSoundStatus.style.color = "#10B981";
     }
+
     if (document.documentElement.classList.contains("from-opening")) {
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
@@ -296,8 +305,9 @@ window.addEventListener("DOMContentLoaded", () => {
             });
         });
     }
-    // Background attempt to warm up MediaPipe
-    warmupMediaPipe().catch(err => console.log("MediaPipe background warmup note:", err.message));
+
+    // Default aktif: Auto-start webcam & MediaPipe sejak awal sesi
+    startCamera();
 });
 
 function playCalibrationInstruction() {
@@ -322,7 +332,6 @@ function playCalibrationInstruction() {
 
         landingCtaTitle.textContent = "Audio Instruksi Gagal Dimuat";
         landingCtaDescription.textContent = "Periksa koneksi atau file audio, lalu muat ulang halaman.";
-        txtHoldStatus.textContent = "Audio instruksi gagal diputar.";
         console.error("Audio kalibrasi posisi gagal diputar.", error);
     });
 }
@@ -356,12 +365,10 @@ function playNarration(fileName, onEnded = null) {
     audio.addEventListener("ended", complete, { once: true });
     audio.addEventListener("error", () => {
         console.error(`Audio gagal dimuat: ${fileName}`, audio.error);
-        txtHoldStatus.textContent = `Audio ${fileName} gagal dimuat.`;
         complete();
     }, { once: true });
     audio.play().catch(error => {
         console.error(`Audio gagal diputar: ${fileName}`, error);
-        txtHoldStatus.textContent = `Audio ${fileName} gagal diputar.`;
         complete();
     });
 }
@@ -1272,6 +1279,11 @@ function handleSensorUpdate(distance) {
 function updateSensorDistanceLabel() {
     zoneEducationSummary.hidden = true;
     hazardInfoCard.classList.remove("is-position-ready");
+
+    const labelDistanceKm = document.getElementById("labelDistanceKm");
+    if (labelDistanceKm) {
+        labelDistanceKm.textContent = ZONE_KM_MAP[currentState] || "5";
+    }
 
     if (isSensorConnected()) {
         if (sensorDistanceCm === null) {

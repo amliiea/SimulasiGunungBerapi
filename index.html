@@ -201,12 +201,19 @@
 
             </div>
 
-            <!-- 3. Compact Sensor Distance Card -->
+            <!-- 3. Scaled Evacuation Distance & Physical Sensor Telemetry Card -->
             <div class="simulation-bottom-grid">
                 <article class="hazard-info-card distance-zone-card" id="hazardInfoCard">
+                    <div class="scaled-km-row">
+                        <span class="distance-km-label">JARAK EVAKUASI DARI PUNCAK</span>
+                        <div class="distance-km-display">
+                            <strong id="labelDistanceKm" class="distance-km-value">5</strong>
+                            <span class="distance-km-unit">km</span>
+                        </div>
+                    </div>
                     <div class="sensor-distance-row">
                         <div class="sensor-distance-reading">
-                            <span class="sensor-distance-caption">JARAK SENSOR</span>
+                            <span class="sensor-distance-caption">SENSOR HC-SR04</span>
                             <strong id="labelDistance">-- cm</strong>
                         </div>
                         <span class="sensor-distance-feedback" id="txtDistanceFeedback">Menunggu sensor</span>
