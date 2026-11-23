@@ -39,8 +39,6 @@ let cursorEl = null;
 let cursorX = window.innerWidth / 2;
 let cursorY = window.innerHeight / 2;
 let isHoveringMascot = false;
-let dwellStartTime = null;
-const DWELL_CLICK_TIME_MS = 1800; // Auto-click jika ditahan 1.8 detik di atas maskot
 let hasGestureClicked = false;
 
 function initTouchlessCursor() {
@@ -49,12 +47,7 @@ function initTouchlessCursor() {
     cursorEl.className = "virtual-cursor";
     cursorEl.innerHTML = `
         <div class="cursor-dot"></div>
-        <div class="cursor-ring">
-            <svg class="cursor-dwell-svg" viewBox="0 0 44 44">
-                <circle class="cursor-dwell-bg" cx="22" cy="22" r="18"/>
-                <circle class="cursor-dwell-fill" cx="22" cy="22" r="18"/>
-            </svg>
-        </div>
+        <div class="cursor-ring"></div>
     `;
     document.body.appendChild(cursorEl);
 }
@@ -169,29 +162,19 @@ function detectTouchlessLoop() {
                 if (inMascot && !hasGestureClicked) {
                     if (!isHoveringMascot) {
                         isHoveringMascot = true;
-                        dwellStartTime = performance.now();
                         mascotTrigger.classList.add("is-touchless-hovered");
                         if (cursorEl) cursorEl.classList.add("is-hovering");
                     }
 
-                    const elapsed = performance.now() - dwellStartTime;
-                    const progress = Math.min(1, elapsed / DWELL_CLICK_TIME_MS);
-                    const dwellFill = cursorEl?.querySelector(".cursor-dwell-fill");
-                    if (dwellFill) {
-                        dwellFill.style.strokeDashoffset = 113.1 * (1 - progress);
-                    }
-
-                    if (isPinching || progress >= 1) {
+                    // KLIK HANYA SAAT 2 UJUNG JARI DIRAPATKAN (PINCH)
+                    if (isPinching) {
                         triggerTouchlessClick();
                     }
                 } else {
                     if (isHoveringMascot) {
                         isHoveringMascot = false;
-                        dwellStartTime = null;
                         mascotTrigger.classList.remove("is-touchless-hovered");
                         if (cursorEl) cursorEl.classList.remove("is-hovering");
-                        const dwellFill = cursorEl?.querySelector(".cursor-dwell-fill");
-                        if (dwellFill) dwellFill.style.strokeDashoffset = 113.1;
                     }
                 }
             } else {
@@ -200,7 +183,6 @@ function detectTouchlessLoop() {
                 }
                 if (isHoveringMascot) {
                     isHoveringMascot = false;
-                    dwellStartTime = null;
                     mascotTrigger.classList.remove("is-touchless-hovered");
                 }
             }
