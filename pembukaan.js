@@ -40,6 +40,8 @@ let cursorX = window.innerWidth / 2;
 let cursorY = window.innerHeight / 2;
 let isHoveringMascot = false;
 let hasGestureClicked = false;
+let wasOpenBefore = false;
+let pinchFrameCount = 0;
 
 function initTouchlessCursor() {
     cursorEl = document.createElement("div");
@@ -124,23 +126,45 @@ function detectTouchlessLoop() {
                 const indexTip = lm[8];
                 const thumbTip = lm[4];
                 const middleTip = lm[12];
+                const wrist = lm[0];
+                const middleMcp = lm[9];
 
-                const distThumb = Math.hypot(indexTip.x - thumbTip.x, indexTip.y - thumbTip.y);
-                const distMiddle = Math.hypot(indexTip.x - middleTip.x, indexTip.y - middleTip.y);
+                // Ukuran telapak tangan sebagai acuan skala dinamis (jarak pergelangan ke pangkal jari)
+                const handScale = Math.hypot(middleMcp.x - wrist.x, middleMcp.y - wrist.y) || 0.2;
 
-                let isPinching = false;
+                const rawDistThumb = Math.hypot(indexTip.x - thumbTip.x, indexTip.y - thumbTip.y);
+                const rawDistMiddle = Math.hypot(indexTip.x - middleTip.x, indexTip.y - middleTip.y);
+
+                const relDistThumb = rawDistThumb / handScale;
+                const relDistMiddle = rawDistMiddle / handScale;
+
                 let midX = 0;
                 let midY = 0;
+                let relDist = 0;
 
-                if (distMiddle < distThumb) {
+                if (relDistMiddle < relDistThumb) {
                     midX = (indexTip.x + middleTip.x) / 2;
                     midY = (indexTip.y + middleTip.y) / 2;
-                    isPinching = distMiddle < 0.050;
+                    relDist = relDistMiddle;
                 } else {
                     midX = (indexTip.x + thumbTip.x) / 2;
                     midY = (indexTip.y + thumbTip.y) / 2;
-                    isPinching = distThumb < 0.046;
+                    relDist = relDistThumb;
                 }
+
+                // Rasio normal: terbuka > 0.30, dirapatkan < 0.16
+                const isOpen = relDist > 0.28;
+                const isClosed = relDist < 0.15;
+
+                if (isOpen) {
+                    wasOpenBefore = true;
+                    pinchFrameCount = 0;
+                } else if (isClosed) {
+                    pinchFrameCount++;
+                }
+
+                // Klik hanya valid jika sebelumnya posisi 2 jari terbuka lalu sengaja dirapatkan
+                const isPinching = wasOpenBefore && isClosed && pinchFrameCount >= 2;
 
                 // Cermin X agar intuitif seperti melihat cermin
                 const targetX = (1 - midX) * window.innerWidth;
@@ -178,6 +202,8 @@ function detectTouchlessLoop() {
                     }
                 }
             } else {
+                wasOpenBefore = false;
+                pinchFrameCount = 0;
                 if (cursorEl) {
                     cursorEl.classList.remove("is-active", "is-hovering", "is-pinching");
                 }
