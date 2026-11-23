@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#e8bd78">
+    <title>Pembukaan - Mitigasi Erupsi Gunung Semeru</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="pembukaan.css">
+</head>
+<body>
+    <main class="opening-screen">
+        <div class="opening-glow opening-glow-left" aria-hidden="true"></div>
+        <div class="opening-glow opening-glow-right" aria-hidden="true"></div>
+
+        <section class="opening-layout" aria-labelledby="openingTitle">
+            <div class="opening-copy">
+                <h1 id="openingTitle">Mitigasi Erupsi<br>Gunung Semeru</h1>
+                <div class="opening-caption" aria-live="polite" aria-atomic="true">
+                    <p id="openingCaption"></p>
+                </div>
+            </div>
+
+            <div class="opening-mascot">
+                <div class="mascot-halo" aria-hidden="true"></div>
+                <button
+                    class="mascot-trigger"
+                    id="mascotTrigger"
+                    type="button"
+                    aria-label="Klik maskot untuk memulai narasi pembukaan"
+                    aria-pressed="false"
+                >
+                    <img
+                        class="mascot-image mascot-image-idle"
+                        src="assets/Gambar/maskot%201.png"
+                        alt="Maskot menyapa"
+                    >
+                    <img
+                        class="mascot-image mascot-image-ready"
+                        src="assets/Gambar/maskot%202.png"
+                        alt=""
+                        aria-hidden="true"
+                    >
+                </button>
+            </div>
+        </section>
+
+        <audio id="openingAudio" preload="auto" aria-hidden="true">
+            <source src="assets/Audio/01.%20VO_01_Pembukaan.mp3" type="audio/mpeg">
+        </audio>
+    </main>
+    <script type="module" src="pembukaan.js"></script>
+</body>
+</html>

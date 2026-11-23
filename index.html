@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mitigasi Erupsi Gunung Semeru - Simulasi Interaktif</title>
+    <script>
+        if (new URLSearchParams(window.location.search).has("fromOpening")) {
+            document.documentElement.classList.add("from-opening");
+        }
+    </script>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -42,21 +47,13 @@
                     <span class="dev-badge-status" id="devSoundStatus">Mati</span>
                 </button>
 
-                <div class="dev-section-title">Simulasi Jarak Evakuasi:</div>
-                <div class="dev-distances-grid">
-                    <button class="dev-dist-btn" data-dist="5">1: 5 km</button>
-                    <button class="dev-dist-btn" data-dist="13">2: 13 km</button>
-                    <button class="dev-dist-btn" data-dist="17">3: 17 km</button>
-                    <button class="dev-dist-btn" data-dist="21">4: >20 km</button>
-                </div>
-
                 <button id="btnDevSkip" class="dev-skip-action-btn" title="Shortcut: Tekan Spasi">
                     <span>Lewati Gestur</span>
                     <kbd>Spasi ⏭️</kbd>
                 </button>
             </div>
             <div class="dev-dropdown-footer">
-                <span>Pintasan: <b>[Spasi]</b> Lanjut &bull; <b>[C]</b> Kamera &bull; <b>[D]</b> Menu &bull; <b>[R]</b> Reset</span>
+                <span>Pintasan: <b>[Spasi]</b> Gestur &bull; <b>[C]</b> Kamera &bull; <b>[D]</b> Menu &bull; <b>[R]</b> Reset</span>
             </div>
         </div>
     </aside>
@@ -90,7 +87,7 @@
 
                     <div class="cta-text-content">
                         <h2 class="cta-title">Angkat Dua Jari untuk Memulai</h2>
-                        <p class="cta-description">Hadapkan telapak tangan ke kamera dan tahan selama 2 detik hingga terdeteksi.</p>
+                        <p class="cta-description">Hadapkan telapak tangan ke kamera dan tahan selama 3 detik hingga terdeteksi.</p>
                     </div>
 
                     <!-- Visual trigger / status ring indicator -->
@@ -144,15 +141,6 @@
 
             <!-- 1. Top Stepper / Breadcrumbs Bar -->
             <nav class="floating-pill-bar top-stepper-bar" aria-label="Progress Tahapan Evakuasi">
-                <div class="stepper-item active-pill" data-step="START" id="stepStart">
-                    <span class="step-check-icon">
-                        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M13.4 4.3L6.5 11.2 2.6 7.3 3.7 6.2l2.8 2.8 5.8-5.8z"/></svg>
-                    </span>
-                    <span class="step-text">Start</span>
-                </div>
-
-                <span class="stepper-arrow">›</span>
-
                 <div class="stepper-item" data-step="ZONE1" id="stepZone1">
                     <span class="step-check-icon">
                         <svg viewBox="0 0 16 16" fill="currentColor"><path d="M13.4 4.3L6.5 11.2 2.6 7.3 3.7 6.2l2.8 2.8 5.8-5.8z"/></svg>
@@ -211,163 +199,113 @@
                     </div>
                 </div>
 
-                <!-- Telemetry Status Chips Under Camera -->
-                <div class="vision-telemetry-chips">
-                    <div class="telemetry-pill" id="chipDistance">
-                        <svg class="chip-icon teal" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
-                        </svg>
-                        <span id="labelDistance">Zona Sesuai (120 cm)</span>
-                    </div>
-
-                    <div class="telemetry-pill" id="chipFacing">
-                        <svg class="chip-icon green" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                        </svg>
-                        <span id="labelFacing">Menghadap Layar</span>
-                    </div>
-                </div>
             </div>
 
-            <!-- 3. Non-Overlapping Bottom Grid (Horizontal Layout for Info Card & Gesture Controller) -->
+            <!-- 3. Compact Sensor Distance Card -->
             <div class="simulation-bottom-grid">
-                <!-- Left Column: Educational Hazard Card -->
-                <article class="hazard-info-card" id="hazardInfoCard">
-                    <div class="hazard-badge-wrapper">
-                        <span class="hazard-pill-badge" id="hazardKrbBadge">
-                            <svg class="badge-icon-warning" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                            </svg>
-                            <span id="txtKrbLevel">KRB II • Zona Bahaya Menengah</span>
-                        </span>
-                    </div>
-
-                    <h2 class="hazard-title" id="txtZoneTitle">Zona 2 — Awan Panas</h2>
-                    <div class="hazard-radius-container">
-                        <span class="radius-dot"></span>
-                        <span class="radius-text" id="txtDangerRadius">Radius bahaya: ≤ 13 km</span>
-                    </div>
-
-                    <p class="hazard-description" id="txtZoneDescription">
-                        Awan panas merupakan aliran material vulkanik bersuhu tinggi yang bergerak cepat menuruni lereng gunung dan sangat berbahaya.
-                    </p>
-
-                    <div class="action-guidance-box" id="boxQuickAction">
-                        <div class="action-icon-col">
-                            <svg class="shield-action-svg" viewBox="0 0 24 24" fill="none" stroke="#EA580C" stroke-width="2">
-                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                            </svg>
+                <article class="hazard-info-card distance-zone-card" id="hazardInfoCard">
+                    <div class="sensor-distance-row">
+                        <div class="sensor-distance-reading">
+                            <span class="sensor-distance-caption">JARAK SENSOR</span>
+                            <strong id="labelDistance">-- cm</strong>
                         </div>
-                        <div class="action-text-col">
-                            <strong class="action-eyebrow">TINDAKAN CEPAT</strong>
-                            <p class="action-body" id="txtQuickActionBody">
-                                Segera menjauh dari jalur aliran awan panas dan ikuti arah evakuasi menuju zona aman.
-                            </p>
-                        </div>
+                        <span class="sensor-distance-feedback" id="txtDistanceFeedback">Menunggu sensor</span>
                     </div>
 
-                    <div class="dispersion-direction-box" id="boxDispersion">
-                        <svg class="compass-svg" viewBox="0 0 24 24" fill="none" stroke="#EA580C" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"/>
-                            <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill="#EA580C"/>
-                        </svg>
-                        <span class="dispersion-label" id="txtDispersionLabel">
-                            Arah Sebaran: <strong id="txtDispersionTarget">Lembah Besuk Kobokan & Curah Kobokan</strong>
-                        </span>
+                    <div class="zone-education-summary" id="zoneEducationSummary" hidden aria-hidden="true">
+                        <span class="hazard-pill-badge" id="txtKrbLevel"></span>
+                        <h2 class="hazard-title" id="txtZoneTitle"></h2>
+                        <p class="action-body" id="txtQuickActionBody"></p>
                     </div>
                 </article>
-
-                <!-- Right Column: Gesture Controller Card -->
-                <div class="gesture-controller-card" id="gestureControllerBar" role="region" aria-label="Instruksi Gestur">
-                    <div class="gesture-controller-main">
-                        <div class="gesture-avatar-box" id="gestureAvatarBox">
-                            <svg class="gesture-silhouette-svg" id="gestureSilhouetteSvg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <circle cx="20" cy="12" r="4.5" fill="#EA580C"/>
-                                <path d="M19 19H21C22.6 19 24 20.4 24 22V32H16V22C16 20.4 17.4 19 19 19Z" fill="#EA580C"/>
-                                <path d="M17 32V42M23 32V42" stroke="#EA580C" stroke-width="3" stroke-linecap="round"/>
-                                <path d="M22 22L36 22M36 22L31 17M36 22L31 27" stroke="#EA580C" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                <circle cx="41" cy="22" r="2.5" fill="#10B981"/>
-                            </svg>
-                        </div>
-
-                        <div class="gesture-command-info">
-                            <span class="gesture-eyebrow">PERINTAH GESTUR</span>
-                            <h3 class="gesture-title" id="txtGestureTitle">Arahkan satu tangan ke kanan</h3>
-                            <p class="gesture-subtext" id="txtGestureSubtext">Tahan posisi selama 5 detik untuk melanjutkan</p>
-                        </div>
-                    </div>
-
-                    <!-- Live Hold Status & Animated Progress Bar -->
-                    <div class="gesture-progress-widget" id="gestureProgressWidget">
-                        <div class="progress-labels">
-                            <span class="progress-status-txt" id="txtHoldStatus">Tahan gerakan...</span>
-                            <strong class="progress-timer-txt" id="txtHoldCounter">0 / 5 detik</strong>
-                        </div>
-
-                        <div class="progress-track-bg">
-                            <div class="progress-fill-bar" id="gestureProgressBar" style="width: 0%;"></div>
-                        </div>
-                    </div>
-                </div>
             </div>
-        </section>
 
-
-        <!-- ============================================== -->
-        <!-- SCREEN 3: COMPLETION / COOLDOWN SCREEN (UI-3)  -->
-        <!-- ============================================== -->
-        <section class="screen-view" id="screenCooldown">
-            <!-- Frosted Glassmorphism Hero Card (Ensures readability over video background) -->
-            <div class="glass-hero-card">
-                <!-- Badge Pill -->
-                <div class="badge-pill orange-badge">SIMULASI SELESAI</div>
-
-                <!-- Headline -->
-                <h1 class="main-title">Terima Kasih!</h1>
-                <p class="main-subtitle">Simulasi akan kembali ke halaman awal dalam:</p>
-
-                <!-- Pure Circular Countdown Meter (Clean timer without splash/sparkles) -->
-                <div class="circular-countdown-container" id="cooldownClockContainer">
-                    <div class="countdown-svg-wrapper">
-                        <svg class="countdown-svg" viewBox="0 0 160 160">
-                            <!-- Background ring -->
-                            <circle class="countdown-bg-ring" cx="80" cy="80" r="66"/>
-                            <!-- Orange active progress arc -->
-                            <circle class="countdown-progress-ring" id="cooldownProgressRing" cx="80" cy="80" r="66"/>
+            <!-- Gesture card directly below the camera HUD -->
+            <div class="gesture-controller-card" id="gestureControllerBar" role="region" aria-label="Instruksi Gestur">
+                <div class="gesture-controller-main">
+                    <div class="gesture-avatar-box" id="gestureAvatarBox">
+                        <img
+                            class="gesture-mascot-image"
+                            id="gestureMascotImage"
+                            alt=""
+                            hidden
+                        >
+                        <svg class="gesture-silhouette-svg" id="gestureSilhouetteSvg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="24" cy="8" r="5" fill="#EA580C"/>
+                            <path d="M20 16H28C29.1 16 30 16.9 30 18V29H18V18C18 16.9 18.9 16 20 16Z" fill="#EA580C"/>
+                            <path d="M20 29V42M28 29V42" stroke="#EA580C" stroke-width="4" stroke-linecap="round"/>
+                            <path d="M29 20H39M39 20L34 15M39 20L34 25" stroke="#EA580C" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M19 20H9M9 20L14 15M9 20L14 25" stroke="#10B981" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="43" cy="20" r="3" fill="#10B981"/>
+                            <circle cx="5" cy="20" r="3" fill="#10B981"/>
                         </svg>
+                    </div>
 
-                        <!-- Centered time counter -->
-                        <div class="countdown-center-labels">
-                            <span class="countdown-number" id="cooldownNumber">20</span>
-                            <span class="countdown-unit">detik</span>
-                        </div>
+                    <div class="gesture-command-info">
+                        <span class="gesture-eyebrow">PERINTAH GESTUR</span>
+                        <h3 class="gesture-title" id="txtGestureTitle">Arahkan satu tangan ke kiri atau kanan</h3>
+                        <p class="gesture-subtext" id="txtGestureSubtext">Tahan posisi selama 3 detik untuk melanjutkan</p>
                     </div>
                 </div>
 
-                <!-- Instant Restart Button -->
-                <button class="btn-restart-now" id="btnRestartNow">
-                    Mulai Ulang Sekarang
-                </button>
-            </div>
+                <div class="gesture-progress-widget" id="gestureProgressWidget">
+                    <div class="progress-labels">
+                        <span class="progress-status-txt" id="txtHoldStatus">Tahan gerakan...</span>
+                        <strong class="progress-timer-txt" id="txtHoldCounter">0 / 3 detik</strong>
+                    </div>
 
-            <!-- Bottom Floating Siaga Card -->
-            <div class="floating-pill-bar bottom-siaga-card">
-                <div class="siaga-icon-box">
-                    <svg class="shield-check-svg" viewBox="0 0 24 24" fill="none" stroke="#EA580C" stroke-width="2.5">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                        <path d="M9 12l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </div>
-
-                <div class="siaga-text-box">
-                    <h3 class="siaga-title">Tetap Waspada, Selalu Siaga</h3>
-                    <p class="siaga-description">Kenali potensi bahaya, ikuti arahan petugas, dan perhatikan informasi resmi saat terjadi aktivitas vulkanik.</p>
+                    <div class="progress-track-bg">
+                        <div class="progress-fill-bar" id="gestureProgressBar" style="width: 0%;"></div>
+                    </div>
                 </div>
             </div>
         </section>
 
+        <section class="screen-view closing-screen" id="screenClosing" aria-labelledby="closingTitle">
+            <div class="closing-card">
+                <svg class="closing-volcano" viewBox="0 0 180 132" aria-hidden="true">
+                    <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M77 47C77 33 89 24 102 24C114 24 124 33 124 44C124 56 114 65 102 65H86C73 65 62 56 62 43C62 31 71 22 83 22" fill="#e5e7eb" stroke="#b9c1cb" stroke-width="5"/>
+                        <path d="M86 39C86 27 96 18 108 18C120 18 130 28 130 40C130 51 121 60 110 60H96C86 60 78 52 78 42" fill="#fff" stroke="#b9c1cb" stroke-width="5"/>
+                        <path d="M85 58L102 34L118 58H85Z" fill="#f97316"/>
+                        <path d="M55 120L101 61L147 120C149 124 146 128 141 128H61C56 128 53 124 55 120Z" fill="#555b63" stroke="#454b54" stroke-width="5"/>
+                        <path d="M101 61L92 88L106 82L116 94L118 78L128 85L101 61Z" fill="#fb923c"/>
+                        <path d="M55 120H147" stroke="#343a43" stroke-width="5"/>
+                    </g>
+                </svg>
+                <span class="closing-badge">SIMULASI SELESAI</span>
+                <h1 id="closingTitle">Terima Kasih!</h1>
+                <p id="closingSubtitle">Simulasi akan kembali ke halaman awal dalam:</p>
+                <div class="closing-countdown" role="timer" aria-live="polite" aria-atomic="true">
+                    <svg class="closing-countdown-ring" viewBox="0 0 200 200" aria-hidden="true">
+                        <circle class="closing-countdown-track" cx="100" cy="100" r="78"></circle>
+                        <circle class="closing-countdown-progress" id="closingCountdownProgress" cx="100" cy="100" r="78"></circle>
+                    </svg>
+                    <span class="countdown-ray ray-one"></span>
+                    <span class="countdown-ray ray-two"></span>
+                    <span class="countdown-ray ray-three"></span>
+                    <div class="closing-countdown-content">
+                        <strong id="closingCountdown">20</strong>
+                        <span>detik</span>
+                    </div>
+                </div>
+                <div class="closing-safety-note">
+                    <svg viewBox="0 0 48 48" aria-hidden="true">
+                        <path d="M24 4L42 11V23C42 34 34 41 24 44C14 41 6 34 6 23V11L24 4Z" fill="none" stroke="currentColor" stroke-width="3.5"/>
+                        <path d="M16 24L22 30L34 17" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <div>
+                        <strong>Tetap Waspada, Selalu Siaga</strong>
+                        <p>Kenali potensi bahaya, ikuti arahan petugas, dan perhatikan informasi resmi saat terjadi aktivitas vulkanik.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
     </div>
 
+    <audio id="calibrationAudio" preload="auto" aria-hidden="true" hidden>
+        <source src="assets/Audio/02.%20VO_02_Kalibrasi_Posisi.mp3" type="audio/mpeg">
+    </audio>
     <script type="module" src="app.js"></script>
 </body>
 </html>

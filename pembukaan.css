@@ -1,0 +1,298 @@
+:root {
+    --opening-gold: #e8bd78;
+    --opening-cream: #e9dabf;
+    --opening-text: #49351f;
+    color-scheme: light;
+    font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--opening-cream);
+    color: var(--opening-text);
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    min-width: 320px;
+    min-height: 100%;
+    margin: 0;
+}
+
+body {
+    min-height: 100vh;
+    overflow-x: hidden;
+    background:
+        radial-gradient(ellipse at 76% 48%, rgba(255, 255, 255, 0.22), transparent 40%),
+        linear-gradient(125deg, var(--opening-gold) 0%, var(--opening-cream) 54%, var(--opening-gold) 100%);
+}
+
+button {
+    font: inherit;
+}
+
+.opening-screen {
+    position: relative;
+    display: grid;
+    min-height: 100vh;
+    min-height: 100svh;
+    overflow: hidden;
+    isolation: isolate;
+    align-items: center;
+    padding: clamp(24px, 5vw, 72px);
+    opacity: 1;
+    transform: scale(1);
+    transition: opacity 450ms ease, transform 450ms ease;
+}
+
+.opening-screen.is-leaving {
+    opacity: 0;
+    transform: scale(0.99);
+}
+
+.opening-glow {
+    position: absolute;
+    z-index: -1;
+    width: min(45vw, 620px);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    filter: blur(100px);
+    opacity: 0.12;
+    pointer-events: none;
+}
+
+.opening-glow-left {
+    top: -34%;
+    left: -12%;
+    background: var(--opening-cream);
+}
+
+.opening-glow-right {
+    right: -15%;
+    bottom: -34%;
+    background: var(--opening-gold);
+}
+
+.opening-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 0.82fr);
+    align-items: center;
+    gap: clamp(32px, 6vw, 96px);
+    width: min(100%, 1320px);
+    margin: 0 auto;
+}
+
+.opening-copy {
+    position: relative;
+    z-index: 1;
+    max-width: 690px;
+    padding: clamp(12px, 3vw, 36px) 0;
+}
+
+.opening-copy h1,
+.opening-caption p {
+    color: var(--opening-text);
+}
+
+.opening-copy h1 {
+    margin: 0;
+    font-size: clamp(40px, 6.3vw, 82px);
+    font-weight: 800;
+    letter-spacing: -0.055em;
+    line-height: 1.08;
+}
+
+.opening-caption {
+    display: flex;
+    align-items: center;
+    min-height: clamp(112px, 16vh, 156px);
+    max-width: 640px;
+    margin: clamp(22px, 4vh, 38px) 0 24px;
+}
+
+.opening-caption p {
+    margin: 0;
+    font-size: clamp(22px, 3vw, 36px);
+    font-weight: 500;
+    line-height: 1.45;
+    color: #624a30;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 300ms ease, transform 300ms ease;
+}
+
+.opening-caption p.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.opening-mascot {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    align-self: stretch;
+}
+
+.mascot-halo {
+    position: absolute;
+    width: min(42vw, 540px);
+    aspect-ratio: 1;
+    border: 1px solid rgba(73, 53, 31, 0.12);
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(233, 218, 191, 0.64), rgba(232, 189, 120, 0.18) 65%, transparent 66%);
+    box-shadow: 0 0 100px rgba(141, 99, 44, 0.12);
+    animation: mascot-pulse 2.4s ease-in-out infinite;
+}
+
+.mascot-trigger {
+    position: relative;
+    z-index: 1;
+    display: block;
+    width: min(100%, 510px);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.mascot-trigger:focus-visible {
+    outline: 3px solid #49351f;
+    outline-offset: 8px;
+    border-radius: 40%;
+}
+
+.opening-mascot.has-started .mascot-halo {
+    animation: none;
+}
+
+.opening-mascot.has-started .mascot-trigger {
+    cursor: default;
+}
+
+.mascot-image {
+    display: block;
+    width: min(100%, 510px);
+    max-height: min(78vh, 760px);
+    object-fit: contain;
+    filter: drop-shadow(0 24px 36px rgba(87, 57, 28, 0.2));
+    animation: mascot-float 4.2s ease-in-out infinite;
+    transition: opacity 700ms cubic-bezier(0.22, 0.61, 0.36, 1), transform 700ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.mascot-image-ready {
+    position: absolute;
+    inset: 0;
+    height: 100%;
+    opacity: 0;
+    transform: scale(0.97);
+}
+
+.opening-mascot.has-started .mascot-image-idle {
+    opacity: 0;
+    transform: scale(1.02);
+}
+
+.opening-mascot.has-started .mascot-image-ready {
+    opacity: 1;
+    transform: scale(1);
+}
+
+#openingAudio {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+}
+
+@keyframes mascot-pulse {
+    0%,
+    100% {
+        scale: 0.96;
+        opacity: 0.72;
+    }
+
+    50% {
+        scale: 1.04;
+        opacity: 1;
+    }
+}
+
+@keyframes mascot-float {
+    0%,
+    100% {
+        translate: 0 0;
+    }
+
+    50% {
+        translate: 0 -8px;
+    }
+}
+
+@media (max-width: 760px) {
+    .opening-screen {
+        padding: 32px 24px 24px;
+    }
+
+    .opening-layout {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        text-align: center;
+    }
+
+    .opening-copy {
+        padding: 12px 0 0;
+        margin: 0 auto;
+    }
+
+    .opening-caption {
+        justify-content: center;
+        min-height: 96px;
+        margin: 18px auto;
+    }
+
+    .opening-mascot {
+        min-height: 250px;
+    }
+
+    .mascot-halo {
+        width: min(72vw, 360px);
+    }
+
+    .mascot-image {
+        width: min(76vw, 340px);
+        max-height: 38vh;
+    }
+
+    .mascot-trigger {
+        width: min(76vw, 340px);
+    }
+}
+
+@media (max-width: 420px) {
+    .opening-copy h1 {
+        font-size: clamp(36px, 10vw, 46px);
+    }
+
+    .opening-caption p {
+        font-size: 20px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

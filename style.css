@@ -60,6 +60,19 @@ html, body {
     -moz-osx-font-smoothing: grayscale;
 }
 
+body {
+    opacity: 1;
+    transition: opacity 600ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+body.is-transitioning-out {
+    opacity: 0;
+}
+
+html.from-opening body {
+    opacity: 0;
+}
+
 /* ==========================================================================
    VIDEO BACKGROUND LAYER
    ========================================================================== */
@@ -141,8 +154,219 @@ html, body {
     transform: scale(1);
 }
 
+.closing-screen {
+    z-index: 2;
+    padding: 0;
+}
+
+.closing-card {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    max-height: 100vh;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    text-align: center;
+}
+
+.closing-volcano {
+    position: absolute;
+    top: 26px;
+    left: 50%;
+    width: 150px;
+    height: 110px;
+    transform: translateX(-50%);
+}
+
+.closing-badge {
+    position: absolute;
+    top: 158px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: inline-flex;
+    padding: 10px 28px;
+    border-radius: 999px;
+    background: var(--color-volcanic-tangerine);
+    color: #fff;
+    font-size: 21px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+.closing-card h1 {
+    position: absolute;
+    top: 215px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    margin: 0;
+    color: #15234c;
+    font-size: 68px;
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.04em;
+}
+
+.closing-card p {
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+#closingSubtitle {
+    position: absolute;
+    top: 294px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 32px);
+    color: #15234c;
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.closing-countdown {
+    position: absolute;
+    top: 340px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 200px;
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    color: #15234c;
+}
+
+.closing-countdown-ring {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+
+.closing-countdown-track,
+.closing-countdown-progress {
+    fill: none;
+    stroke-width: 14;
+}
+
+.closing-countdown-track {
+    stroke: rgba(255, 255, 255, 0.9);
+}
+
+.closing-countdown-progress {
+    stroke: var(--color-volcanic-tangerine);
+    stroke-linecap: round;
+    stroke-dasharray: 490.09;
+    stroke-dashoffset: 122.52;
+    transition: stroke-dashoffset 1s linear;
+}
+
+.closing-countdown-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1;
+}
+
+.closing-countdown-content strong {
+    font-size: 88px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.closing-countdown-content span {
+    margin-top: 2px;
+    font-size: 22px;
+    font-weight: 700;
+}
+
+.countdown-ray {
+    position: absolute;
+    z-index: 2;
+    width: 9px;
+    height: 32px;
+    border-radius: 999px;
+    background: #ffb45c;
+}
+
+.ray-one {
+    right: 15%;
+    top: 36%;
+    transform: rotate(25deg);
+}
+
+.ray-two {
+    right: 1%;
+    top: 45%;
+    width: 30px;
+    height: 9px;
+    transform: rotate(-18deg);
+}
+
+.ray-three {
+    right: -2%;
+    bottom: 31%;
+    width: 32px;
+    height: 9px;
+}
+
+.closing-safety-note {
+    position: absolute;
+    left: 50%;
+    bottom: 78px;
+    width: min(880px, calc(100% - 80px));
+    min-height: 118px;
+    transform: translateX(-50%);
+    display: grid;
+    grid-template-columns: 82px 1fr;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 38px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.97);
+    color: #15234c;
+    text-align: left;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+}
+
+.closing-safety-note > svg {
+    width: 54px;
+    height: 54px;
+    justify-self: center;
+    color: #ea580c;
+}
+
+.closing-safety-note div {
+    border-left: 2px solid #ffb14b;
+    padding-left: 18px;
+}
+
+.closing-safety-note strong {
+    display: block;
+    font-size: 23px;
+    line-height: 1.25;
+}
+
+.closing-safety-note p {
+    max-width: 780px;
+    margin-top: 4px;
+    color: #475569;
+    font-size: 17px;
+    line-height: 1.35;
+}
+
 /* ==========================================================================
-   GLASSMORPHISM HERO CARD (FOR UI-1 & UI-3 TEXT READABILITY)
+   GLASSMORPHISM HERO CARD (FOR UI-1 TEXT READABILITY)
+   ========================================================================== */
+
+/* ==========================================================================
+   GLASSMORPHISM HERO CARD (FOR UI-1 TEXT READABILITY)
    ========================================================================== */
 .glass-hero-card {
     background: var(--surface-glass-card);
@@ -530,40 +754,6 @@ html, body {
     color: #64748b;
 }
 
-/* Vision Telemetry Chips */
-.vision-telemetry-chips {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 6px;
-    width: 100%;
-}
-
-.telemetry-pill {
-    background: var(--surface-white-pill);
-    backdrop-filter: blur(14px);
-    border-radius: 9999px;
-    padding: 5px 12px;
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    font-size: 11.5px;
-    font-weight: 600;
-    color: var(--color-slate-800);
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.9);
-}
-
-.chip-icon {
-    width: 14px;
-    height: 14px;
-    flex-shrink: 0;
-}
-
-.chip-icon.teal { color: #0284c7; }
-.chip-icon.green { color: var(--color-safe-dark); }
-.chip-icon.warning { color: var(--color-amber-warning); }
-
 /* ==========================================================================
    HORIZONTAL BOTTOM GRID: PREVENTS OVERLAPPING BETWEEN INFO & GESTURE CARDS
    ========================================================================== */
@@ -571,13 +761,14 @@ html, body {
     position: absolute;
     bottom: 24px;
     left: 24px;
-    right: 24px;
-    display: grid;
-    grid-template-columns: 410px 1fr;
-    gap: 20px;
-    align-items: end;
+    width: min(320px, calc(100vw - 48px));
+    display: block;
     z-index: 25;
-    max-width: calc(100vw - 48px);
+    max-width: none;
+}
+
+.simulation-bottom-grid > * {
+    min-width: 0;
 }
 
 /* 3. Educational Hazard Card (Left Column) */
@@ -585,11 +776,90 @@ html, body {
     background: var(--surface-glass-card);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border-radius: 22px;
-    padding: 20px 22px;
+    border-radius: 18px;
+    padding: 10px 14px;
     box-shadow: var(--shadow-soft-card);
     border: 1.5px solid rgba(255, 255, 255, 0.85);
     width: 100%;
+}
+
+.distance-zone-card {
+    transition: border-color 180ms ease, background-color 180ms ease;
+}
+
+.distance-zone-card.is-position-ready {
+    border-color: rgba(16, 185, 129, 0.7);
+}
+
+.sensor-distance-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.sensor-distance-reading {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 88px;
+}
+
+.sensor-distance-caption {
+    color: var(--color-slate-600);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.7px;
+}
+
+#labelDistance {
+    color: var(--color-slate-900);
+    font-size: 23px;
+    font-weight: 800;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+}
+
+.sensor-distance-feedback {
+    color: var(--color-slate-600);
+    font-size: 11.5px;
+    font-weight: 650;
+    line-height: 1.35;
+    text-align: right;
+}
+
+.zone-education-summary {
+    border-top: 1px solid rgba(148, 163, 184, 0.28);
+    display: grid;
+    gap: 4px;
+    margin-top: 10px;
+    padding-top: 9px;
+}
+
+#zoneEducationSummary {
+    display: none !important;
+}
+
+.zone-education-summary[hidden] {
+    display: none;
+}
+
+.zone-education-summary .hazard-pill-badge {
+    justify-self: start;
+    font-size: 9px;
+    padding: 3px 8px;
+}
+
+.zone-education-summary .hazard-title {
+    font-size: 15px;
+    line-height: 1.2;
+    margin: 0;
+}
+
+.zone-education-summary .action-body {
+    color: var(--color-slate-600);
+    font-size: 11.5px;
+    line-height: 1.35;
 }
 
 .hazard-badge-wrapper {
@@ -725,6 +995,68 @@ html, body {
     width: 100%;
 }
 
+#gestureControllerBar {
+    position: absolute;
+    top: 232px;
+    right: 24px;
+    z-index: 25;
+    width: min(220px, calc(100vw - 32px));
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 8px;
+    padding: 11px 14px 13px;
+}
+
+.gesture-controller-card#gestureControllerBar .gesture-controller-main {
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    text-align: center;
+}
+
+.gesture-controller-card#gestureControllerBar .gesture-avatar-box {
+    width: 82px;
+    height: 82px;
+    border: 0;
+    background: transparent;
+}
+
+.gesture-controller-card#gestureControllerBar .gesture-silhouette-svg {
+    width: 58px;
+    height: 58px;
+}
+
+.gesture-controller-card#gestureControllerBar .gesture-command-info {
+    width: 100%;
+    text-align: center;
+}
+
+.gesture-controller-card#gestureControllerBar .gesture-eyebrow,
+.gesture-controller-card#gestureControllerBar .gesture-subtext {
+    display: none;
+}
+
+.gesture-controller-card#gestureControllerBar .gesture-title {
+    font-size: 14px;
+    line-height: 1.3;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+}
+
+.gesture-controller-card#gestureControllerBar .gesture-progress-widget {
+    width: 100%;
+    gap: 5px;
+}
+
+.gesture-controller-card.has-zone-mascot {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 11px 14px 13px;
+}
+
 .gesture-controller-main {
     display: flex;
     align-items: center;
@@ -743,6 +1075,72 @@ html, body {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+}
+
+.gesture-controller-card.has-zone-mascot .gesture-controller-main {
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    text-align: center;
+}
+
+#gestureControllerBar.has-zone-mascot .gesture-avatar-box {
+    position: relative;
+    isolation: isolate;
+    width: 168px;
+    height: 168px;
+    border: 0;
+    background: transparent;
+    animation: zone-mascot-float 2.8s ease-in-out infinite;
+}
+
+.gesture-controller-card.has-zone-mascot .gesture-avatar-box::before {
+    position: absolute;
+    inset: 14px;
+    z-index: 0;
+    border-radius: 50%;
+    background: rgba(251, 146, 60, 0.18);
+    content: "";
+    filter: blur(12px);
+    animation: zone-mascot-glow 2.8s ease-in-out infinite;
+}
+
+.gesture-mascot-image {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 8px 8px rgba(124, 45, 18, 0.18));
+}
+
+.gesture-controller-card.has-zone-mascot .gesture-command-info {
+    width: 100%;
+}
+
+.gesture-controller-card.has-zone-mascot .gesture-title,
+.gesture-controller-card.has-zone-mascot .gesture-subtext {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+}
+
+.gesture-controller-card.has-zone-mascot .gesture-title {
+    line-height: 1.35;
+}
+
+.gesture-controller-card.has-zone-mascot .gesture-progress-widget {
+    width: 100%;
+}
+
+@keyframes zone-mascot-float {
+    0%, 100% { transform: translateY(0) rotate(-1deg); }
+    50% { transform: translateY(-5px) rotate(1deg); }
+}
+
+@keyframes zone-mascot-glow {
+    0%, 100% { opacity: 0.55; transform: scale(0.94); }
+    50% { opacity: 0.95; transform: scale(1.06); }
 }
 
 .gesture-silhouette-svg {
@@ -822,139 +1220,6 @@ html, body {
     border-radius: 9999px;
     width: 0%;
     transition: width 0.1s linear;
-}
-
-/* ==========================================================================
-   SCREEN 3: COMPLETION / COOLDOWN (UI-3)
-   ========================================================================= */
-.circular-countdown-container {
-    position: relative;
-    width: 160px;
-    height: 160px;
-    margin: 18px 0 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.countdown-svg-wrapper {
-    position: relative;
-    width: 150px;
-    height: 150px;
-}
-
-.countdown-svg {
-    width: 100%;
-    height: 100%;
-    transform: rotate(-90deg);
-}
-
-.countdown-bg-ring {
-    fill: #ffffff;
-    stroke: var(--color-slate-200);
-    stroke-width: 9;
-}
-
-.countdown-progress-ring {
-    fill: none;
-    stroke: var(--color-volcanic-tangerine);
-    stroke-width: 9;
-    stroke-linecap: round;
-    stroke-dasharray: 414.7;
-    stroke-dashoffset: 0;
-    transition: stroke-dashoffset 1s linear;
-}
-
-.countdown-center-labels {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
-
-.countdown-number {
-    font-size: 44px;
-    font-weight: 800;
-    line-height: 1;
-    color: var(--color-slate-900);
-    letter-spacing: -1px;
-}
-
-.countdown-unit {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--color-slate-600);
-    margin-top: 2px;
-}
-
-.btn-restart-now {
-    margin-top: 6px;
-    padding: 8px 22px;
-    border-radius: 9999px;
-    background: var(--surface-white-pill);
-    border: 1.5px solid var(--color-slate-200);
-    color: var(--color-slate-800);
-    font-size: 12.5px;
-    font-weight: 700;
-    font-family: var(--font-primary);
-    cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-    transition: all 0.2s ease;
-}
-
-.btn-restart-now:hover {
-    background: #ffffff;
-    border-color: var(--color-volcanic-tangerine);
-    color: var(--color-lava-orange);
-    transform: translateY(-2px);
-}
-
-/* UI-3 Bottom Siaga Card */
-.bottom-siaga-card {
-    position: absolute;
-    bottom: 24px;
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 12px 24px;
-    gap: 14px;
-    max-width: 620px;
-    width: calc(100% - 48px);
-    z-index: 20;
-}
-
-.siaga-icon-box {
-    width: 42px;
-    height: 42px;
-    border-radius: 12px;
-    background: var(--color-peach-tint);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.shield-check-svg {
-    width: 22px;
-    height: 22px;
-}
-
-.siaga-text-box {
-    flex: 1;
-}
-
-.siaga-title {
-    font-size: 14.5px;
-    font-weight: 800;
-    color: var(--color-slate-900);
-    margin-bottom: 2px;
-}
-
-.siaga-description {
-    font-size: 12px;
-    line-height: 1.45;
-    color: var(--color-slate-600);
 }
 
 /* ==========================================================================
@@ -1093,40 +1358,6 @@ html, body {
     color: #94a3b8;
 }
 
-.dev-section-title {
-    font-size: 10.5px;
-    font-weight: 700;
-    color: #94a3b8;
-    margin-top: 4px;
-    letter-spacing: 0.2px;
-}
-
-.dev-distances-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 5px;
-}
-
-.dev-dist-btn {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 8px;
-    padding: 5px 8px;
-    color: #cbd5e1;
-    font-size: 11px;
-    font-weight: 600;
-    font-family: var(--font-primary);
-    cursor: pointer;
-    transition: all 0.15s ease;
-    text-align: center;
-}
-
-.dev-dist-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-    color: #ffffff;
-    border-color: var(--color-volcanic-tangerine);
-}
-
 .dev-skip-action-btn {
     display: flex;
     align-items: center;
@@ -1172,28 +1403,65 @@ html, body {
    ========================================================================== */
 @media (max-width: 1024px) {
     .simulation-bottom-grid {
-        grid-template-columns: 360px 1fr;
-        gap: 16px;
+        left: 20px;
+        width: min(320px, calc(100vw - 40px));
     }
-    .gesture-controller-card {
-        padding: 12px 18px;
+    .vision-hud-container,
+    #gestureControllerBar {
+        right: 20px;
     }
 }
 
 @media (max-width: 840px) {
     .simulation-bottom-grid {
-        grid-template-columns: 1fr;
-        gap: 12px;
         bottom: 16px;
         left: 16px;
-        right: 16px;
+        width: min(300px, calc(100vw - 32px));
     }
     .top-stepper-bar {
         width: calc(100% - 32px);
         overflow-x: auto;
         justify-content: flex-start;
     }
+    .vision-hud-container {
+        top: 16px;
+        right: 16px;
+    }
+    .vision-camera-card {
+        width: 200px;
+    }
+    #gestureControllerBar {
+        top: 216px;
+        right: 16px;
+        width: min(200px, calc(100vw - 32px));
+    }
     .dev-toolbar-top {
         display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .vision-camera-card {
+        width: 180px;
+    }
+    #gestureControllerBar {
+        top: 200px;
+        width: min(180px, calc(100vw - 24px));
+        right: 12px;
+    }
+    #gestureControllerBar.has-zone-mascot .gesture-avatar-box {
+        width: 136px;
+        height: 136px;
+    }
+    .simulation-bottom-grid {
+        left: 12px;
+        width: min(270px, calc(100vw - 24px));
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .gesture-controller-card.has-zone-mascot .gesture-avatar-box,
+    .gesture-controller-card.has-zone-mascot .gesture-avatar-box::before {
+        animation: none;
     }
 }

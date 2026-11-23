@@ -1,6 +1,6 @@
 /**
  * SIMULASI MITIGASI ERUPSI GUNUNG SEMERU - APPLICATION CORE ENGINE
- * Implements Unified UI-1, UI-2, and UI-3 with MediaPipe Vision & Gesture Detection
+ * Implements the simulation screens with MediaPipe Vision & Gesture Detection
  */
 
 import {
@@ -11,13 +11,19 @@ import {
 
 import {
     detectPeaceGesture,
-    detectThumbsUp,
     detectBothHandsRaised,
     detectPointHorizontal,
     detectCrossedArms,
-    detectWave,
-    resetWaveDetection
+    detectOneHandRaised
 } from "./gesture3.js";
+
+import {
+    connectSensor,
+    getSensorStatus,
+    getZoneFromDistance,
+    isSensorConnected,
+    ZONES as SENSOR_ZONES
+} from "../sensor.js";
 
 /* ==========================================================================
    CONSTANTS & CONFIGURATION
@@ -26,48 +32,61 @@ const MEDIAPIPE_WASM_URL = new URL("./assets/mediapipe/wasm/", import.meta.url).
 const POSE_MODEL_URL = new URL("./assets/models/pose_landmarker_lite.task", import.meta.url).href;
 const HAND_MODEL_URL = new URL("./assets/models/hand_landmarker.task", import.meta.url).href;
 
-const HOLD_DURATION_SHORT = 2000;  // 2 seconds for landing and thumbs-up
-const HOLD_DURATION_NORMAL = 5000; // 5 seconds matching UI-2 for hazard zones
-const COOLDOWN_SECONDS = 20;       // 20 seconds circular timer matching UI-3
+const GESTURE_HOLD_DURATION_MS = 3000;
+const CLOSING_COUNTDOWN_SECONDS = 20;
+const PAGE_EXIT_TRANSITION_MS = 600;
 
 const STATES = Object.freeze({
     HOME: "HOME",           // UI-1: Landing / Start
-    BRIEFING: "BRIEFING",   // Pre-evacuation briefing
     ERUPTION: "ERUPTION",   // Active eruption warning video
     ZONE1: "ZONE1",         // KRB III: Lontaran Material & Abu (≤5 km)
     ZONE2: "ZONE2",         // UI-2: KRB II: Awan Panas Guguran (≤13 km)
     ZONE3: "ZONE3",         // KRB I: Lahar Hujan (≤17 km)
-    SAFE: "SAFE",           // Posko Titik Kumpul (>20 km)
-    COOLDOWN: "COOLDOWN"    // UI-3: Completion & Cooldown
+    SAFE: "SAFE"            // Posko Titik Kumpul
+});
+
+const STATE_TO_SENSOR_ZONE = Object.freeze({
+    [STATES.ZONE1]: 1,
+    [STATES.ZONE2]: 2,
+    [STATES.ZONE3]: 3,
+    [STATES.SAFE]: 4
+});
+
+const AUDIO_FILES = Object.freeze({
+    MOVE_FORWARD: "16. VO_16_Maju_Sedikit.mp3",
+    MOVE_BACK: "17. VO_17_Mundur_Sedikit.mp3",
+    ERUPTION: "04. VO_04_Erupsi_Vulkanik.mp3",
+    ZONE1_INSTRUCTION: "05. VO_05_Gestur_Perlindungan_Kepala.mp3",
+    TO_ZONE2: "06. VO_06_Menuju_Zona_2.mp3",
+    ZONE2_SCENE: "07. VO_07_Awan_Panas.mp3",
+    ZONE2_INSTRUCTION: "08. VO_08_Gestur_Arah_Evakuasi.mp3",
+    TO_ZONE3: "09. VO_09_Menuju_Zona_3.mp3",
+    ZONE3_SCENE: "10. VO_10_Lahar_Hujan.mp3",
+    ZONE3_INSTRUCTION: "11. VO_11_Gestur_Larangan_Melintas.mp3",
+    TO_SAFE: "12. VO_12_Menuju_Zona_Aman.mp3",
+    SAFE_SCENE: "13. VO_13_Zona_Aman.mp3",
+    END_SIMULATION: "14. VO_14_Akhiri_Simulasi.mp3",
+    CLOSING: "15. VO_15_Penutupan.mp3"
+});
+
+const ZONE_INSTRUCTIONS = Object.freeze({
+    [STATES.ZONE1]: [AUDIO_FILES.ZONE1_INSTRUCTION],
+    [STATES.ZONE2]: [AUDIO_FILES.ZONE2_SCENE, AUDIO_FILES.ZONE2_INSTRUCTION],
+    [STATES.ZONE3]: [AUDIO_FILES.ZONE3_SCENE, AUDIO_FILES.ZONE3_INSTRUCTION],
+    [STATES.SAFE]: [AUDIO_FILES.SAFE_SCENE, AUDIO_FILES.END_SIMULATION]
 });
 
 const VIDEO_SOURCES = Object.freeze({
     HOME: "assets/videos/gunung_normal.mp4",
-    BRIEFING: "assets/videos/briefing.mp4",
     ERUPTION: "assets/videos/gunung_meletus.mp4",
     ZONE1: "assets/videos/lontaran_material.mp4",
     ZONE2: "assets/videos/awan_panas.mp4",
     ZONE3: "assets/videos/lahar_hujan.mp4",
-    SAFE: "assets/videos/zona_aman.mp4",
-    COOLDOWN: "assets/videos/gunung_normal.mp4"
+    SAFE: "assets/videos/zona_aman.mp4"
 });
 
 // Zone Educational Content Specification
 const ZONE_CONTENT = Object.freeze({
-    BRIEFING: {
-        krbBadge: "KRB INFO • Pembekalan Awal",
-        title: "Briefing Evakuasi Mandiri",
-        radius: "Radius awal: 5 km dari kawah",
-        description: "Simak arahan dasar kesiapsiagaan bencana vulkanik sebelum memasuki skenario evakuasi darurat Semeru.",
-        actionEyebrow: "PERSIAPAN AWAL",
-        actionBody: "Pastikan posisi tubuh menghadap kamera dengan jelas dan berdiri tegak pada jarak 120 cm.",
-        dispersionTarget: "Jalur Evakuasi Curah Kobokan & Lapangan Penanggal",
-        gestureTitle: "Tunjukkan Gestur Jempol (Thumbs Up)",
-        gestureSubtext: "Tahan posisi selama 2 detik untuk memulai simulasi",
-        holdDuration: HOLD_DURATION_SHORT,
-        stepperId: "stepStart",
-        avatarSvg: "thumbs-up"
-    },
     ZONE1: {
         krbBadge: "KRB III • Zona Bahaya Sangat Tinggi",
         title: "Zona 1 — Lontaran Material & Abu",
@@ -77,10 +96,12 @@ const ZONE_CONTENT = Object.freeze({
         actionBody: "Lindungi kepala dari jatuhan material vulkanik dengan mengangkat kedua tangan di atas kepala.",
         dispersionTarget: "Kawah Jonggring Saloko & Lereng Atas Semeru",
         gestureTitle: "Angkat kedua tangan di atas kepala",
-        gestureSubtext: "Tahan posisi selama 5 detik untuk melanjutkan evakuasi",
-        holdDuration: HOLD_DURATION_NORMAL,
+        gestureSubtext: "Tahan posisi selama 3 detik untuk melanjutkan evakuasi",
+        holdDuration: GESTURE_HOLD_DURATION_MS,
         stepperId: "stepZone1",
-        avatarSvg: "hands-overhead"
+        avatarSvg: "hands-overhead",
+        avatarImage: "assets/Gambar/zona1.png",
+        avatarImageAlt: "Maskot melindungi kepala dengan kedua tangan di atas kepala"
     },
     ZONE2: {
         krbBadge: "KRB II • Zona Bahaya Menengah",
@@ -90,11 +111,13 @@ const ZONE_CONTENT = Object.freeze({
         actionEyebrow: "TINDAKAN CEPAT",
         actionBody: "Segera menjauh dari jalur aliran awan panas dan ikuti arah evakuasi menuju zona aman.",
         dispersionTarget: "Lembah Besuk Kobokan & Curah Kobokan",
-        gestureTitle: "Arahkan satu tangan ke kanan",
-        gestureSubtext: "Tahan posisi selama 5 detik untuk melanjutkan",
-        holdDuration: HOLD_DURATION_NORMAL,
+        gestureTitle: "Arahkan satu tangan ke kiri atau kanan",
+        gestureSubtext: "Tahan posisi selama 3 detik untuk melanjutkan",
+        holdDuration: GESTURE_HOLD_DURATION_MS,
         stepperId: "stepZone2",
-        avatarSvg: "point-right"
+        avatarSvg: "point-horizontal",
+        avatarImage: "assets/Gambar/zona 2.png",
+        avatarImageAlt: "Ilustrasi gesture mengarahkan tangan ke kiri atau kanan"
     },
     ZONE3: {
         krbBadge: "KRB I • Zona Bahaya Aliran Lahar",
@@ -105,10 +128,12 @@ const ZONE_CONTENT = Object.freeze({
         actionBody: "Jauhi sempadan sungai dan jembatan, waspadai debit air yang meningkat secara tiba-tiba.",
         dispersionTarget: "Daerah Aliran Sungai Besuk Bang, Besuk Kembar & Sarat",
         gestureTitle: "Silangkan kedua tangan di depan dada",
-        gestureSubtext: "Tahan posisi selama 5 detik untuk melanjutkan evakuasi",
-        holdDuration: HOLD_DURATION_NORMAL,
+        gestureSubtext: "Tahan posisi selama 3 detik untuk melanjutkan evakuasi",
+        holdDuration: GESTURE_HOLD_DURATION_MS,
         stepperId: "stepZone3",
-        avatarSvg: "arms-crossed"
+        avatarSvg: "arms-crossed",
+        avatarImage: "assets/Gambar/zona 3.png",
+        avatarImageAlt: "Ilustrasi gesture menyilangkan kedua tangan"
     },
     SAFE: {
         krbBadge: "🛡️ Kawasan Aman • Di Luar KRB",
@@ -118,11 +143,13 @@ const ZONE_CONTENT = Object.freeze({
         actionEyebrow: "TINDAKAN CEPAT",
         actionBody: "Lapor diri ke posko pengungsian, ikuti pendataan petugas, dan utamakan lansia serta anak-anak.",
         dispersionTarget: "Posko Lapangan Penanggal & Kantor Balai Desa Pasirian",
-        gestureTitle: "Lambaikan satu tangan ke kamera",
-        gestureSubtext: "Lambaikan tangan untuk menyelesaikan simulasi mitigasi",
-        holdDuration: 0, // Wave triggered by dynamic frequency
+        gestureTitle: "Angkat satu tangan untuk berpamitan",
+        gestureSubtext: "Cukup angkat hingga setinggi bahu dan tahan 3 detik; tidak perlu diayunkan",
+        holdDuration: GESTURE_HOLD_DURATION_MS,
         stepperId: "stepSafe",
-        avatarSvg: "wave"
+        avatarSvg: "one-hand-wave",
+        avatarImage: "assets/Gambar/zona 4.png",
+        avatarImageAlt: "Ilustrasi gesture berpamitan di zona aman"
     }
 });
 
@@ -131,19 +158,24 @@ const ZONE_CONTENT = Object.freeze({
    ========================================================================== */
 const bgVideo = document.getElementById("bgVideo");
 const videoFallback = document.getElementById("videoFallback");
+const calibrationAudio = document.getElementById("calibrationAudio");
 
 // Screens
 const screenLanding = document.getElementById("screenLanding");
 const screenSimulation = document.getElementById("screenSimulation");
-const screenCooldown = document.getElementById("screenCooldown");
+const screenClosing = document.getElementById("screenClosing");
+const closingCountdown = document.getElementById("closingCountdown");
 
 // UI-1 Elements
 const landingCtaCard = document.getElementById("landingCtaCard");
 const landingRingFill = document.getElementById("landingRingFill");
+const landingCtaTitle = landingCtaCard.querySelector(".cta-title");
+const landingCtaDescription = landingCtaCard.querySelector(".cta-description");
+const landingCtaTitleText = landingCtaTitle.textContent;
+const landingCtaDescriptionText = landingCtaDescription.textContent;
 
 // UI-2 Elements: Stepper
 const stepperItems = {
-    START: document.getElementById("stepStart"),
     ZONE1: document.getElementById("stepZone1"),
     ZONE2: document.getElementById("stepZone2"),
     ZONE3: document.getElementById("stepZone3"),
@@ -158,29 +190,25 @@ const camOffOverlay = document.getElementById("camOffOverlay");
 const hudEngineLabel = document.getElementById("hudEngineLabel");
 const hudFpsLabel = document.getElementById("hudFpsLabel");
 const labelDistance = document.getElementById("labelDistance");
-const labelFacing = document.getElementById("labelFacing");
+const txtDistanceFeedback = document.getElementById("txtDistanceFeedback");
+const zoneEducationSummary = document.getElementById("zoneEducationSummary");
+const hazardInfoCard = document.getElementById("hazardInfoCard");
 
 // UI-2 Elements: Hazard Info Card
 const txtKrbLevel = document.getElementById("txtKrbLevel");
 const txtZoneTitle = document.getElementById("txtZoneTitle");
-const txtDangerRadius = document.getElementById("txtDangerRadius");
-const txtZoneDescription = document.getElementById("txtZoneDescription");
 const txtQuickActionBody = document.getElementById("txtQuickActionBody");
-const txtDispersionTarget = document.getElementById("txtDispersionTarget");
 
 // UI-2 Elements: Gesture Controller Bar
 const gestureAvatarBox = document.getElementById("gestureAvatarBox");
+const gestureMascotImage = document.getElementById("gestureMascotImage");
+const gestureSilhouetteSvg = document.getElementById("gestureSilhouetteSvg");
 const txtGestureTitle = document.getElementById("txtGestureTitle");
 const txtGestureSubtext = document.getElementById("txtGestureSubtext");
 const txtHoldStatus = document.getElementById("txtHoldStatus");
 const txtHoldCounter = document.getElementById("txtHoldCounter");
 const gestureProgressBar = document.getElementById("gestureProgressBar");
 const btnQuickAdvance = document.getElementById("btnQuickAdvance");
-
-// UI-3 Elements: Cooldown
-const cooldownNumber = document.getElementById("cooldownNumber");
-const cooldownProgressRing = document.getElementById("cooldownProgressRing");
-const btnRestartNow = document.getElementById("btnRestartNow");
 
 // Dev Menu Elements
 const devMenuContainer = document.getElementById("devMenuContainer");
@@ -191,7 +219,6 @@ const devCamStatus = document.getElementById("devCamStatus");
 const btnToggleSound = document.getElementById("btnToggleSound");
 const devSoundStatus = document.getElementById("devSoundStatus");
 const btnDevSkip = document.getElementById("btnDevSkip");
-const distButtons = document.querySelectorAll(".dev-dist-btn");
 
 /* ==========================================================================
    STATE VARIABLES
@@ -212,9 +239,28 @@ let mediaPipeInitPromise = null;
 
 let gestureStartTime = null;
 let gestureTriggered = false;
-let cooldownInterval = null;
-let virtualDistanceKm = 5;
+let gestureLastDetectedAt = null;
+const GESTURE_DETECTION_GRACE_MS = 600;
+let sensorStatusInterval = null;
+let sensorDistanceCm = null;
+let sensorZone = 0;
 let audioMuted = true;
+let calibrationInstructionComplete =
+    !new URLSearchParams(window.location.search).has("fromOpening");
+let activeNarration = null;
+let activeNarrationFile = null;
+let activeNarrationToken = 0;
+let initialZoneEntryPending = false;
+let pendingZoneTransition = null;
+let zoneTransitionReady = false;
+let lockedSensorZone = null;
+let zoneContentStarted = false;
+let zoneGestureReady = false;
+let closingCountdownInterval = null;
+let closingRedirectTimeout = null;
+let gestureAvatarRequestId = 0;
+let lastPositionCueFile = null;
+let lastPositionCueAt = 0;
 
 // Video player management
 let activeVideoRequestId = 0;
@@ -225,21 +271,299 @@ let activeVideoRequestId = 0;
 window.addEventListener("DOMContentLoaded", () => {
     setupEventListeners();
     applyState(STATES.HOME);
+    try {
+        connectSensor(handleSensorUpdate);
+    } catch (error) {
+        console.error("Sensor jarak gagal dimulai; progres simulasi ditahan sampai sensor tersambung.", error);
+    }
+    updateSensorDistanceLabel();
+    processZonePosition();
+    sensorStatusInterval = window.setInterval(() => {
+        updateSensorDistanceLabel();
+        processZonePosition();
+    }, 500);
+
+    if (!calibrationInstructionComplete) {
+        landingCtaTitle.textContent = "Menyiapkan Instruksi...";
+        landingCtaDescription.textContent = "Instruksi akan diputar otomatis saat kamera aktif.";
+        txtHoldStatus.textContent = "Menunggu kamera aktif...";
+        txtHoldCounter.textContent = "Aktifkan kamera lewat menu Demo";
+    }
+    if (document.documentElement.classList.contains("from-opening")) {
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                document.documentElement.classList.remove("from-opening");
+            });
+        });
+    }
     // Background attempt to warm up MediaPipe
     warmupMediaPipe().catch(err => console.log("MediaPipe background warmup note:", err.message));
 });
 
+function playCalibrationInstruction() {
+    if (!cameraActive || !calibrationAudio.paused) {
+        return;
+    }
+
+    landingCtaTitle.textContent = "Dengarkan Instruksi...";
+    landingCtaDescription.textContent = "Gestur dua jari aktif setelah instruksi selesai.";
+    txtHoldStatus.textContent = "Dengarkan instruksi posisi...";
+    txtHoldCounter.textContent = "Tunggu audio selesai";
+
+    calibrationAudio.play().catch(error => {
+        if (error.name === "NotAllowedError") {
+            landingCtaTitle.textContent = "Klik untuk Memutar Ulang Instruksi";
+            landingCtaDescription.textContent = "Browser belum mengizinkan audio. Klik kartu ini untuk mencoba lagi.";
+            txtHoldStatus.textContent = "Klik Mulai untuk memutar instruksi";
+            txtHoldCounter.textContent = "Tunggu audio selesai";
+            console.warn("Browser memblokir pemutaran otomatis audio kalibrasi.", error);
+            return;
+        }
+
+        landingCtaTitle.textContent = "Audio Instruksi Gagal Dimuat";
+        landingCtaDescription.textContent = "Periksa koneksi atau file audio, lalu muat ulang halaman.";
+        txtHoldStatus.textContent = "Audio instruksi gagal diputar.";
+        console.error("Audio kalibrasi posisi gagal diputar.", error);
+    });
+}
+
+function stopNarration() {
+    activeNarrationToken++;
+    if (!activeNarration) return;
+    activeNarration.pause();
+    activeNarration.currentTime = 0;
+    activeNarration = null;
+    activeNarrationFile = null;
+}
+
+function playNarration(fileName, onEnded = null) {
+    stopNarration();
+    const requestToken = activeNarrationToken;
+    const audioUrl = new URL(`./assets/Audio/${encodeURIComponent(fileName)}`, import.meta.url);
+    const audio = new Audio(audioUrl.href);
+    let completed = false;
+    activeNarration = audio;
+    activeNarrationFile = fileName;
+
+    const complete = () => {
+        if (completed || requestToken !== activeNarrationToken) return;
+        completed = true;
+        activeNarration = null;
+        activeNarrationFile = null;
+        onEnded?.();
+    };
+
+    audio.addEventListener("ended", complete, { once: true });
+    audio.addEventListener("error", () => {
+        console.error(`Audio gagal dimuat: ${fileName}`, audio.error);
+        txtHoldStatus.textContent = `Audio ${fileName} gagal dimuat.`;
+        complete();
+    }, { once: true });
+    audio.play().catch(error => {
+        console.error(`Audio gagal diputar: ${fileName}`, error);
+        txtHoldStatus.textContent = `Audio ${fileName} gagal diputar.`;
+        complete();
+    });
+}
+
+function playNarrationSequence(fileNames, onComplete) {
+    let index = 0;
+    const playNext = () => {
+        if (index >= fileNames.length) {
+            onComplete?.();
+            return;
+        }
+        playNarration(fileNames[index++], playNext);
+    };
+    playNext();
+}
+
+function beginInitialZoneEntry() {
+    if (initialZoneEntryPending) return;
+    initialZoneEntryPending = true;
+    landingCtaTitle.textContent = "Sesuaikan Jarak ke Zona 1";
+    landingCtaDescription.textContent = "Ikuti indikator sensor sampai posisi berada di rentang Zona 1.";
+    processZonePosition();
+}
+
+function startEruptionSequence() {
+    if (!initialZoneEntryPending || currentState !== STATES.HOME) return;
+    initialZoneEntryPending = false;
+    applyState(STATES.ERUPTION, true);
+}
+
+function prepareZoneTransition(nextState) {
+    pendingZoneTransition = nextState;
+    zoneTransitionReady = false;
+    lockedSensorZone = null;
+    updateSensorDistanceLabel();
+}
+
+function requestZoneTransition(nextState) {
+    pendingZoneTransition = nextState;
+    zoneTransitionReady = true;
+    updateSensorDistanceLabel();
+    processZonePosition();
+}
+
+function startZoneInstructions(state) {
+    if (currentState !== state || zoneContentStarted) return;
+    zoneContentStarted = true;
+    playNarrationSequence(ZONE_INSTRUCTIONS[state] ?? [], () => {
+        if (currentState !== state) return;
+        zoneGestureReady = true;
+        txtHoldStatus.textContent = "Tahan gerakan...";
+        txtHoldCounter.textContent = `0 / ${Math.round(ZONE_CONTENT[state].holdDuration / 1000)} detik`;
+    });
+}
+
+function playPositionCue(targetZone) {
+    if (!isSensorConnected() || !Number.isFinite(sensorDistanceCm)) return;
+    const zone = SENSOR_ZONES.find(item => item.id === targetZone);
+    if (!zone) return;
+
+    const fileName = sensorDistanceCm < zone.min
+        ? AUDIO_FILES.MOVE_BACK
+        : AUDIO_FILES.MOVE_FORWARD;
+    const isPositionCuePlaying = activeNarrationFile === AUDIO_FILES.MOVE_BACK
+        || activeNarrationFile === AUDIO_FILES.MOVE_FORWARD;
+    if (activeNarration && !isPositionCuePlaying) return;
+    if (activeNarrationFile === fileName) return;
+    if (lastPositionCueFile === fileName && Date.now() - lastPositionCueAt < 5000) return;
+
+    lastPositionCueFile = fileName;
+    lastPositionCueAt = Date.now();
+    playNarration(fileName);
+}
+
+function formatZoneRange(zone) {
+    return Number.isFinite(zone.max)
+        ? `${zone.min}–<${zone.max} cm`
+        : `≥ ${zone.min} cm`;
+}
+
+function processZonePosition() {
+    const isInitialEntry = initialZoneEntryPending && currentState === STATES.HOME;
+    const transitionState = pendingZoneTransition;
+    const targetZone = transitionState
+        ? STATE_TO_SENSOR_ZONE[transitionState]
+        : isInitialEntry
+            ? 1
+            : STATE_TO_SENSOR_ZONE[currentState];
+    if (!targetZone) return;
+
+    const waitingForZoneEntry = Boolean(transitionState)
+        || isInitialEntry
+        || ([STATES.ZONE2, STATES.ZONE3, STATES.SAFE].includes(currentState) && !zoneContentStarted);
+    const guidingActiveZone = !transitionState && zoneGestureReady;
+    const targetZoneLocked = lockedSensorZone === targetZone;
+    if (!waitingForZoneEntry && !guidingActiveZone) return;
+
+    if (!targetZoneLocked && !isSensorConnected()) {
+        gestureStartTime = null;
+        gestureProgressBar.style.width = "0%";
+        txtHoldStatus.textContent = "Sensor terputus";
+        txtHoldCounter.textContent = "Progres ditahan";
+        if (isInitialEntry) {
+            landingCtaTitle.textContent = "Menunggu Sensor";
+            landingCtaDescription.textContent = "Sambungkan sensor untuk memulai simulasi.";
+        }
+        return;
+    }
+
+    if (transitionState && !zoneTransitionReady) {
+        txtHoldStatus.textContent = `Menuju Zona ${targetZone}`;
+        txtHoldCounter.textContent = "Dengarkan instruksi";
+        return;
+    }
+
+    if (targetZoneLocked || sensorZone === targetZone) {
+        lockedSensorZone = targetZone;
+        if (guidingActiveZone) {
+            txtHoldStatus.textContent = "Posisi sesuai";
+            txtHoldCounter.textContent = "Gestur siap";
+        }
+        if (!waitingForZoneEntry) return;
+
+        if (transitionState) {
+            txtHoldStatus.textContent = "Posisi sesuai";
+            txtHoldCounter.textContent = "Menyiapkan zona...";
+            pendingZoneTransition = null;
+            applyState(transitionState, true);
+            return;
+        }
+
+        if (sensorDistanceCm === null) {
+            txtHoldStatus.textContent = "Menunggu data sensor";
+            txtHoldCounter.textContent = "Progres ditahan";
+            if (isInitialEntry) {
+                landingCtaTitle.textContent = "Menunggu Sensor";
+                landingCtaDescription.textContent = "Menunggu pembacaan jarak untuk melanjutkan.";
+            }
+            return;
+        }
+
+        txtHoldStatus.textContent = "Posisi sesuai";
+        txtHoldCounter.textContent = "Menyiapkan zona...";
+        if (isInitialEntry) {
+            landingCtaTitle.textContent = "Jarak Zona 1 sesuai";
+            landingCtaDescription.textContent = `Jarak sensor ${sensorDistanceCm} cm · memulai simulasi...`;
+        }
+        if (isInitialEntry) {
+            startEruptionSequence();
+        } else {
+            startZoneInstructions(currentState);
+        }
+        return;
+    }
+
+    if (sensorDistanceCm === null) {
+        txtHoldStatus.textContent = "Menunggu data sensor";
+        txtHoldCounter.textContent = "Progres ditahan";
+        if (isInitialEntry) {
+            landingCtaTitle.textContent = "Menunggu Sensor";
+            landingCtaDescription.textContent = "Menunggu pembacaan jarak untuk melanjutkan.";
+        }
+        return;
+    }
+
+    const zone = SENSOR_ZONES.find(item => item.id === targetZone);
+    if (!zone) return;
+    const targetRange = formatZoneRange(zone);
+    const direction = sensorDistanceCm < zone.min
+        ? "Mundur sedikit"
+        : "Maju sedikit";
+    txtHoldStatus.textContent = "Jarak belum sesuai";
+    txtHoldCounter.textContent = "Lihat indikator sensor";
+    if (isInitialEntry) {
+        landingCtaTitle.textContent = "Sesuaikan Jarak ke Zona 1";
+        landingCtaDescription.textContent = sensorDistanceCm === null
+            ? `Menunggu data sensor · target ${targetRange}`
+            : `Jarak sensor ${sensorDistanceCm} cm · target ${targetRange} · ${direction}`;
+    }
+    playPositionCue(targetZone);
+}
+
 function setupEventListeners() {
     // UI-1: Click CTA card to start
     landingCtaCard.addEventListener("click", () => {
-        if (currentState === STATES.HOME) {
-            handleGestureSuccess();
+        if (currentState !== STATES.HOME) return;
+        if (!calibrationInstructionComplete) {
+            if (!cameraActive) {
+                txtHoldStatus.textContent = "Kamera belum aktif";
+                txtHoldCounter.textContent = "Aktifkan lewat menu Demo";
+                return;
+            }
+            playCalibrationInstruction();
+            return;
         }
+        handleGestureSuccess();
     });
-
-    // UI-3: Click restart button
-    btnRestartNow.addEventListener("click", () => {
-        resetSimulation();
+    landingCtaCard.addEventListener("keydown", event => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        event.stopPropagation();
+        landingCtaCard.click();
     });
 
     // UI-2: Quick advance button
@@ -269,20 +593,31 @@ function setupEventListeners() {
     btnToggleSound?.addEventListener("click", toggleSound);
     btnDevSkip?.addEventListener("click", () => handleGestureSuccess());
 
-    distButtons.forEach(btn => {
-        btn.addEventListener("click", () => {
-            const dist = parseInt(btn.dataset.dist, 10);
-            setVirtualDistance(dist);
-        });
-    });
-
     // Keyboard Shortcuts
     document.addEventListener("keydown", handleKeyboardShortcut);
+
+    calibrationAudio.addEventListener("ended", () => {
+        calibrationInstructionComplete = true;
+        landingCtaTitle.textContent = landingCtaTitleText;
+        landingCtaDescription.textContent = landingCtaDescriptionText;
+        if (!cameraActive && !cameraStarting) {
+            txtHoldStatus.textContent = "Kamera belum aktif";
+            txtHoldCounter.textContent = "Aktifkan lewat menu Demo";
+        } else {
+            txtHoldStatus.textContent = "Tahan gerakan...";
+            txtHoldCounter.textContent = `0 / ${GESTURE_HOLD_DURATION_MS / 1000} detik`;
+        }
+    });
+    calibrationAudio.addEventListener("error", () => {
+        txtHoldStatus.textContent = "Audio instruksi gagal diputar.";
+        console.error("Audio kalibrasi posisi gagal dimuat.", calibrationAudio.error);
+    });
 
     // Window Unload Cleanup
     window.addEventListener("beforeunload", () => {
         stopCamera();
-        clearInterval(cooldownInterval);
+        stopNarration();
+        clearInterval(sensorStatusInterval);
         poseLandmarker?.close();
         handLandmarker?.close();
     });
@@ -296,18 +631,6 @@ function handleKeyboardShortcut(e) {
         case "enter":
             e.preventDefault();
             handleGestureSuccess();
-            break;
-        case "1":
-            setVirtualDistance(5);
-            break;
-        case "2":
-            setVirtualDistance(13);
-            break;
-        case "3":
-            setVirtualDistance(17);
-            break;
-        case "4":
-            setVirtualDistance(21);
             break;
         case "c":
             toggleCamera();
@@ -407,6 +730,10 @@ async function startCamera() {
         }
         hudEngineLabel.textContent = "MediaPipe Pose v0.5";
 
+        if (!calibrationInstructionComplete) {
+            playCalibrationInstruction();
+        }
+
         lastVideoTime = -1;
         animationFrame = requestAnimationFrame(detectVideoLoop);
     } catch (err) {
@@ -465,7 +792,6 @@ function detectVideoLoop() {
             currentHands = handResults.landmarks ?? [];
 
             renderLandmarks(currentPose, currentHands);
-            evaluatePosePresence(currentPose);
             evaluateActiveGesture(now);
         }
     } catch (err) {
@@ -530,69 +856,44 @@ function renderLandmarks(pose, hands) {
     }
 }
 
-function evaluatePosePresence(pose) {
-    if (!pose) {
-        labelFacing.textContent = "Menunggu Pengguna...";
-        return;
-    }
-
-    const nose = pose[0];
-    const leftEye = pose[2];
-    const rightEye = pose[5];
-
-    if (isPointVisible(nose, 0.4) && (isPointVisible(leftEye, 0.3) || isPointVisible(rightEye, 0.3))) {
-        labelFacing.textContent = "Menghadap Layar";
-    } else {
-        labelFacing.textContent = "Harap Menghadap Layar";
-    }
-}
-
 /* ==========================================================================
    GESTURE DETECTION & HOLD MANAGER
    ========================================================================== */
 function evaluateActiveGesture(now) {
-    if (gestureTriggered || currentState === STATES.COOLDOWN) return;
+    if (gestureTriggered) return;
+    if (currentState === STATES.ERUPTION) return;
+    if (currentState === STATES.HOME && !calibrationInstructionComplete) return;
+    if (STATE_TO_SENSOR_ZONE[currentState] && !zoneGestureReady) return;
+    if (!isRequiredSensorZoneReached()) return;
 
     let isDetected = false;
-    let requiredDuration = HOLD_DURATION_NORMAL;
+    let requiredDuration = GESTURE_HOLD_DURATION_MS;
 
     switch (currentState) {
         case STATES.HOME:
             isDetected = detectPeaceGesture(currentHands);
-            requiredDuration = HOLD_DURATION_SHORT;
-            break;
-
-        case STATES.BRIEFING:
-            isDetected = detectThumbsUp(currentHands);
-            requiredDuration = HOLD_DURATION_SHORT;
             break;
 
         case STATES.ZONE1:
             isDetected = detectBothHandsRaised(currentPose);
-            requiredDuration = HOLD_DURATION_NORMAL;
             break;
 
         case STATES.ZONE2:
             isDetected = detectPointHorizontal(currentPose);
-            requiredDuration = HOLD_DURATION_NORMAL;
             break;
 
         case STATES.ZONE3:
             isDetected = detectCrossedArms(currentPose);
-            requiredDuration = HOLD_DURATION_NORMAL;
             break;
 
         case STATES.SAFE:
-            isDetected = detectWave(currentHands);
-            if (isDetected) {
-                handleGestureSuccess();
-                return;
-            }
+            isDetected = detectOneHandRaised(currentPose);
             break;
     }
 
     // Update Progress and Hold Timer
     if (isDetected) {
+        gestureLastDetectedAt = now;
         if (gestureStartTime === null) {
             gestureStartTime = now;
         }
@@ -614,110 +915,166 @@ function evaluateActiveGesture(now) {
         txtHoldCounter.textContent = `${elapsedSec} / ${totalSec} detik`;
 
         if (elapsed >= requiredDuration) {
-            gestureTriggered = true;
             handleGestureSuccess();
         }
     } else {
-        // Reset hold
-        gestureStartTime = null;
-        if (currentState === STATES.HOME) {
-            landingRingFill.style.strokeDashoffset = "100";
+        const recentlyDetected =
+            gestureLastDetectedAt !== null &&
+            now - gestureLastDetectedAt < GESTURE_DETECTION_GRACE_MS;
+
+        if (gestureStartTime !== null && recentlyDetected) {
+            const elapsed = now - gestureStartTime;
+            if (elapsed >= requiredDuration) {
+                handleGestureSuccess();
+                return;
+            }
+        } else {
+            // Reset after a short grace period so normal pose flicker does not
+            // make the progress bar jump back immediately.
+            gestureStartTime = null;
+            gestureLastDetectedAt = null;
+            if (currentState === STATES.HOME) {
+                landingRingFill.style.strokeDashoffset = "100";
+            }
+            gestureProgressBar.style.width = "0%";
+            txtHoldStatus.textContent = "Tahan gerakan...";
+            const totalSec = Math.round(requiredDuration / 1000);
+            txtHoldCounter.textContent = `0 / ${totalSec} detik`;
         }
-        gestureProgressBar.style.width = "0%";
-        txtHoldStatus.textContent = "Tahan gerakan...";
-        const totalSec = Math.round(requiredDuration / 1000);
-        txtHoldCounter.textContent = `0 / ${totalSec} detik`;
     }
 }
 
 function handleGestureSuccess() {
+    if (gestureTriggered) return;
+    if (currentState === STATES.ERUPTION) return;
+    if (currentState === STATES.HOME && !calibrationInstructionComplete) return;
+    if (STATE_TO_SENSOR_ZONE[currentState] && !zoneGestureReady) return;
+    if (!isRequiredSensorZoneReached()) {
+        gestureTriggered = false;
+        return;
+    }
+
     gestureTriggered = true;
     gestureStartTime = null;
+    gestureLastDetectedAt = null;
     gestureProgressBar.style.width = "100%";
     txtHoldStatus.textContent = "Gerakan Selesai!";
 
     // State transition router
     switch (currentState) {
         case STATES.HOME:
-            // Auto activate camera on starting simulation if not yet active
-            if (!cameraActive) {
-                startCamera();
-            }
-            applyState(STATES.BRIEFING);
-            break;
-
-        case STATES.BRIEFING:
-            applyState(STATES.ERUPTION);
-            break;
+            beginInitialZoneEntry();
+            return;
 
         case STATES.ERUPTION:
-            applyState(STATES.ZONE1);
-            break;
+            return;
 
         case STATES.ZONE1:
-            applyState(STATES.ZONE2);
-            break;
+            prepareZoneTransition(STATES.ZONE2);
+            playNarration(AUDIO_FILES.TO_ZONE2, () => requestZoneTransition(STATES.ZONE2));
+            return;
 
         case STATES.ZONE2:
-            applyState(STATES.ZONE3);
-            break;
+            prepareZoneTransition(STATES.ZONE3);
+            playNarration(AUDIO_FILES.TO_ZONE3, () => requestZoneTransition(STATES.ZONE3));
+            return;
 
         case STATES.ZONE3:
-            applyState(STATES.SAFE);
-            break;
+            prepareZoneTransition(STATES.SAFE);
+            playNarration(AUDIO_FILES.TO_SAFE, () => requestZoneTransition(STATES.SAFE));
+            return;
 
         case STATES.SAFE:
-            applyState(STATES.COOLDOWN);
-            break;
-
-        case STATES.COOLDOWN:
-            resetSimulation();
-            break;
+            playNarration(AUDIO_FILES.CLOSING, startClosingCountdown);
+            return;
     }
+}
+
+function startClosingCountdown() {
+    screenSimulation.classList.remove("active");
+    screenClosing.classList.add("active");
+
+    let secondsRemaining = CLOSING_COUNTDOWN_SECONDS;
+    closingCountdown.textContent = String(secondsRemaining);
+    const countdownProgress = document.getElementById("closingCountdownProgress");
+    const countdownCircumference = 2 * Math.PI * 78;
+    countdownProgress.style.strokeDasharray = String(countdownCircumference);
+    countdownProgress.style.strokeDashoffset = String(countdownCircumference * 0.25);
+
+    closingCountdownInterval = window.setInterval(() => {
+        secondsRemaining -= 1;
+        closingCountdown.textContent = String(secondsRemaining);
+        const progress = Math.max(0, secondsRemaining) / CLOSING_COUNTDOWN_SECONDS;
+        const remainingRingFraction = 0.75 * progress;
+        countdownProgress.style.strokeDashoffset = String(countdownCircumference * (1 - remainingRingFraction));
+
+        if (secondsRemaining <= 0) {
+            window.clearInterval(closingCountdownInterval);
+            closingCountdownInterval = null;
+            document.body.classList.add("is-transitioning-out");
+            closingRedirectTimeout = window.setTimeout(() => {
+                window.location.href = "pembukaan.html";
+            }, PAGE_EXIT_TRANSITION_MS);
+        }
+    }, 1000);
 }
 
 /* ==========================================================================
    STATE MACHINE & UI ORCHESTRATION
    ========================================================================== */
-function applyState(nextState) {
+function applyState(nextState, zonePositionConfirmed = false) {
+    stopNarration();
     currentState = nextState;
     gestureTriggered = false;
     gestureStartTime = null;
-    resetWaveDetection();
-    clearInterval(cooldownInterval);
-
+    gestureLastDetectedAt = null;
+    initialZoneEntryPending = false;
+    pendingZoneTransition = null;
+    zoneTransitionReady = false;
+    if (!zonePositionConfirmed) {
+        lockedSensorZone = null;
+    } else if (STATE_TO_SENSOR_ZONE[nextState]) {
+        lockedSensorZone = STATE_TO_SENSOR_ZONE[nextState];
+    }
+    zoneContentStarted = false;
+    zoneGestureReady = false;
     console.log("Transisi ke state:", nextState);
 
     // 1. Manage Screen Views
     if (nextState === STATES.HOME) {
+        screenClosing.classList.remove("active");
         screenLanding.classList.add("active");
         screenSimulation.classList.remove("active");
-        screenCooldown.classList.remove("active");
+        landingCtaTitle.textContent = landingCtaTitleText;
+        landingCtaDescription.textContent = landingCtaDescriptionText;
         playBackgroundVideo(VIDEO_SOURCES.HOME, true);
-    } else if (nextState === STATES.COOLDOWN) {
-        screenLanding.classList.remove("active");
-        screenSimulation.classList.remove("active");
-        screenCooldown.classList.add("active");
-        playBackgroundVideo(VIDEO_SOURCES.COOLDOWN, true);
-        startCooldownTimer();
     } else {
         // Active Simulation States
         screenLanding.classList.remove("active");
         screenSimulation.classList.add("active");
-        screenCooldown.classList.remove("active");
 
         if (nextState === STATES.ERUPTION) {
-            playBackgroundVideo(VIDEO_SOURCES.ERUPTION, false, () => {
-                applyState(STATES.ZONE1);
-            });
             updateEruptionUi();
+            playBackgroundVideo(VIDEO_SOURCES.ERUPTION, true);
+            playNarration(AUDIO_FILES.ERUPTION, () => {
+                applyState(STATES.ZONE1, true);
+            });
         } else {
             const config = ZONE_CONTENT[nextState];
             if (config) {
                 updateSimulationUi(nextState, config);
-                playBackgroundVideo(VIDEO_SOURCES[nextState], true);
+                if (!(nextState === STATES.ZONE1 && zonePositionConfirmed)) {
+                    playBackgroundVideo(VIDEO_SOURCES[nextState], true);
+                }
+                if (nextState === STATES.ZONE1 || zonePositionConfirmed) {
+                    startZoneInstructions(nextState);
+                } else {
+                    processZonePosition();
+                }
             }
         }
+
+        updateSensorDistanceLabel();
     }
 }
 
@@ -728,10 +1085,7 @@ function updateSimulationUi(stateKey, config) {
     // 2. Update Educational Hazard Card
     txtKrbLevel.textContent = config.krbBadge;
     txtZoneTitle.textContent = config.title;
-    txtDangerRadius.textContent = config.radius;
-    txtZoneDescription.textContent = config.description;
     txtQuickActionBody.textContent = config.actionBody;
-    txtDispersionTarget.textContent = config.dispersionTarget;
 
     // 3. Update Gesture Controller Bar
     txtGestureTitle.textContent = config.gestureTitle;
@@ -742,36 +1096,22 @@ function updateSimulationUi(stateKey, config) {
     txtHoldStatus.textContent = "Tahan gerakan...";
 
     // 4. Update Avatar SVG Silhouette
-    renderAvatarSilhouette(config.avatarSvg);
+    renderAvatarSilhouette(config.avatarSvg, config.avatarImage, config.avatarImageAlt);
 
-    // 5. Update Telemetry Distance display
-    const distMap = {
-        BRIEFING: 5,
-        ZONE1: 5,
-        ZONE2: 13,
-        ZONE3: 17,
-        SAFE: 22
-    };
-    if (distMap[stateKey]) {
-        setVirtualDistance(distMap[stateKey]);
-    }
 }
 
 function updateEruptionUi() {
-    updateStepper("stepStart");
+    updateStepper("stepZone1");
     txtKrbLevel.textContent = "PERINGATAN AWAS • STATUS ERUPSI";
     txtZoneTitle.textContent = "Erupsi Gunung Semeru!";
-    txtDangerRadius.textContent = "Aktivitas Vulkanik Meningkat Cepat";
-    txtZoneDescription.textContent = "Kawah Semeru meluncurkan awan panas dan lontaran material pijar. Segera lakukan evakuasi menjauhi puncak!";
     txtQuickActionBody.textContent = "Perhatikan arahan darurat dan bersiap mengambil langkah evakuasi di Zona 1.";
-    txtDispersionTarget.textContent = "Puncak Jonggring Saloko & Lereng Tenggara";
     txtGestureTitle.textContent = "Bersiap Evakuasi Zona 1";
     txtGestureSubtext.textContent = "Simak situasi erupsi sebelum berpindah rute...";
     renderAvatarSilhouette("warning");
 }
 
 function updateStepper(activeId) {
-    const stepsInOrder = ["stepStart", "stepZone1", "stepZone2", "stepZone3", "stepSafe"];
+    const stepsInOrder = ["stepZone1", "stepZone2", "stepZone3", "stepSafe"];
     const activeIndex = stepsInOrder.indexOf(activeId);
 
     stepsInOrder.forEach((id, index) => {
@@ -788,17 +1128,23 @@ function updateStepper(activeId) {
     });
 }
 
-function renderAvatarSilhouette(type) {
+function renderAvatarSilhouette(type, imageSrc = null, imageAlt = "") {
+    const requestId = ++gestureAvatarRequestId;
+    gestureControllerBar.classList.remove("has-zone-mascot");
+    gestureMascotImage.hidden = true;
+    gestureSilhouetteSvg.hidden = false;
     let svgInner = "";
 
     switch (type) {
-        case "point-right": // UI-2 Style
+        case "point-horizontal": // Kiri atau kanan
             svgInner = `
-                <circle cx="20" cy="12" r="4.5" fill="#EA580C"/>
-                <path d="M19 19H21C22.6 19 24 20.4 24 22V32H16V22C16 20.4 17.4 19 19 19Z" fill="#EA580C"/>
-                <path d="M17 32V42M23 32V42" stroke="#EA580C" stroke-width="3" stroke-linecap="round"/>
-                <path d="M22 22L36 22M36 22L31 17M36 22L31 27" stroke="#EA580C" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <circle cx="41" cy="22" r="2.5" fill="#10B981"/>
+                <circle cx="24" cy="8" r="5" fill="#EA580C"/>
+                <path d="M20 16H28C29.1 16 30 16.9 30 18V29H18V18C18 16.9 18.9 16 20 16Z" fill="#EA580C"/>
+                <path d="M20 29V42M28 29V42" stroke="#EA580C" stroke-width="4" stroke-linecap="round"/>
+                <path d="M29 20H39M39 20L34 15M39 20L34 25" stroke="#EA580C" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M19 20H9M9 20L14 15M9 20L14 25" stroke="#10B981" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="43" cy="20" r="3" fill="#10B981"/>
+                <circle cx="5" cy="20" r="3" fill="#10B981"/>
             `;
             break;
 
@@ -829,14 +1175,14 @@ function renderAvatarSilhouette(type) {
             `;
             break;
 
-        case "wave":
+        case "one-hand-wave":
             svgInner = `
                 <circle cx="24" cy="16" r="4.5" fill="#EA580C"/>
                 <path d="M23 23H25C26.6 23 28 24.4 28 26V34H20V26C20 24.4 21.4 23 23 23Z" fill="#EA580C"/>
                 <path d="M21 34V44M27 34V44" stroke="#EA580C" stroke-width="3" stroke-linecap="round"/>
-                <!-- Waving hand -->
-                <path d="M28 25L35 18L32 12" stroke="#EA580C" stroke-width="3" stroke-linecap="round"/>
-                <path d="M37 10C39 12 39 16 37 18" stroke="#10B981" stroke-width="2.5" stroke-linecap="round"/>
+                <!-- One hand raised in a simple farewell -->
+                <path d="M27 25L32 17L30 8" stroke="#10B981" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M30 8V3M27 9L25 5M33 9L35 5" stroke="#10B981" stroke-width="2.5" stroke-linecap="round"/>
             `;
             break;
 
@@ -848,11 +1194,25 @@ function renderAvatarSilhouette(type) {
             break;
     }
 
-    gestureAvatarBox.innerHTML = `
-        <svg class="gesture-silhouette-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-            ${svgInner}
-        </svg>
-    `;
+    gestureSilhouetteSvg.innerHTML = svgInner;
+    gestureMascotImage.onload = () => {
+        if (requestId !== gestureAvatarRequestId) return;
+        gestureMascotImage.hidden = false;
+        gestureSilhouetteSvg.hidden = true;
+        gestureControllerBar.classList.add("has-zone-mascot");
+    };
+    gestureMascotImage.onerror = () => {
+        if (requestId !== gestureAvatarRequestId) return;
+        gestureMascotImage.hidden = true;
+        gestureSilhouetteSvg.hidden = false;
+    };
+
+    if (imageSrc) {
+        gestureMascotImage.alt = imageAlt;
+        gestureMascotImage.src = imageSrc;
+    } else {
+        gestureMascotImage.removeAttribute("src");
+    }
 }
 
 /* ==========================================================================
@@ -896,40 +1256,148 @@ function toggleSound() {
 /* ==========================================================================
    TELEMETRY & DISTANCE
    ========================================================================== */
-function setVirtualDistance(distKm) {
-    virtualDistanceKm = distKm;
-    const cmEstimate = distKm * 10;
-    labelDistance.textContent = `Zona Sesuai (${cmEstimate} cm ≈ ${distKm} km)`;
+function handleSensorUpdate(distance) {
+    sensorDistanceCm = Number.isFinite(distance) ? distance : null;
+    sensorZone = getZoneFromDistance(sensorDistanceCm);
+
+    updateSensorDistanceLabel();
+    processZonePosition();
 }
 
-/* ==========================================================================
-   UI-3: CIRCULAR COUNTDOWN TIMER & RESET
-   ========================================================================== */
-function startCooldownTimer() {
-    let remaining = COOLDOWN_SECONDS;
-    cooldownNumber.textContent = String(remaining);
+function updateSensorDistanceLabel() {
+    zoneEducationSummary.hidden = true;
+    hazardInfoCard.classList.remove("is-position-ready");
 
-    // Circumference for r=66 is 414.7
-    const circumference = 414.7;
-    cooldownProgressRing.style.strokeDashoffset = "0";
-
-    clearInterval(cooldownInterval);
-    cooldownInterval = setInterval(() => {
-        remaining--;
-        cooldownNumber.textContent = String(remaining);
-
-        const fraction = (COOLDOWN_SECONDS - remaining) / COOLDOWN_SECONDS;
-        const offset = fraction * circumference;
-        cooldownProgressRing.style.strokeDashoffset = String(offset);
-
-        if (remaining <= 0) {
-            clearInterval(cooldownInterval);
-            resetSimulation();
+    if (isSensorConnected()) {
+        if (sensorDistanceCm === null) {
+            labelDistance.textContent = "-- cm";
+            txtDistanceFeedback.textContent = "Sensor aktif · menunggu jarak";
+            return;
         }
-    }, 1000);
+
+        const distanceLabel = Number.isInteger(sensorDistanceCm)
+            ? `${sensorDistanceCm} cm`
+            : `${sensorDistanceCm.toFixed(1)} cm`;
+        labelDistance.textContent = distanceLabel;
+
+        if (currentState === STATES.ERUPTION && !pendingZoneTransition) {
+            txtDistanceFeedback.textContent = lockedSensorZone === 1
+                ? "Zona 1 · posisi terkunci"
+                : sensorZone === 1
+                    ? "Zona 1 · posisi sesuai"
+                    : "Peringatan erupsi · tujuan Zona 1";
+            zoneEducationSummary.hidden = false;
+            hazardInfoCard.classList.toggle("is-position-ready", lockedSensorZone === 1 || sensorZone === 1);
+            return;
+        }
+
+        const requiredZone = pendingZoneTransition
+            ? STATE_TO_SENSOR_ZONE[pendingZoneTransition]
+            : initialZoneEntryPending
+                ? 1
+                : currentState === STATES.ERUPTION
+                    ? 1
+                    : STATE_TO_SENSOR_ZONE[currentState];
+        if (!requiredZone) {
+            txtDistanceFeedback.textContent = sensorZone > 0 && sensorZone < 9
+                ? `Terdeteksi Zona ${sensorZone}`
+                : "Jarak di luar rentang zona";
+            return;
+        }
+
+        if (lockedSensorZone === requiredZone) {
+            txtDistanceFeedback.textContent = `Zona ${requiredZone} · posisi terkunci`;
+            zoneEducationSummary.hidden = Boolean(pendingZoneTransition);
+            hazardInfoCard.classList.add("is-position-ready");
+            return;
+        }
+
+        if (sensorZone === requiredZone) {
+            txtDistanceFeedback.textContent = `Zona ${requiredZone} · posisi sesuai`;
+            zoneEducationSummary.hidden = Boolean(pendingZoneTransition);
+            hazardInfoCard.classList.add("is-position-ready");
+            if (pendingZoneTransition) return;
+            zoneEducationSummary.hidden = false;
+            return;
+        }
+
+        const zone = SENSOR_ZONES.find(item => item.id === requiredZone);
+        if (!zone) {
+            txtDistanceFeedback.textContent = `Target Zona ${requiredZone}`;
+            return;
+        }
+        const targetRange = formatZoneRange(zone);
+        const direction = sensorDistanceCm === null
+            ? "menunggu data sensor"
+            : sensorDistanceCm < zone.min
+                ? "Mundur sedikit"
+                : "Maju sedikit";
+        txtDistanceFeedback.textContent = `Target Zona ${requiredZone}: ${targetRange} · ${direction}`;
+        return;
+    }
+
+    const sensorStatus = getSensorStatus();
+    const statusText = sensorStatus === "bridge-off"
+        ? "Sensor offline"
+        : sensorStatus === "arduino-off"
+            ? "Arduino offline"
+            : "Data sensor terputus";
+    const requiredZone = pendingZoneTransition
+        ? STATE_TO_SENSOR_ZONE[pendingZoneTransition]
+        : initialZoneEntryPending
+            ? 1
+            : currentState === STATES.ERUPTION
+                ? 1
+                : STATE_TO_SENSOR_ZONE[currentState];
+    const target = SENSOR_ZONES.find(zone => zone.id === requiredZone);
+    labelDistance.textContent = "-- cm";
+    if (requiredZone && lockedSensorZone === requiredZone) {
+        txtDistanceFeedback.textContent = `Zona ${requiredZone} · posisi terkunci (sensor terputus)`;
+        zoneEducationSummary.hidden = Boolean(pendingZoneTransition);
+        hazardInfoCard.classList.add("is-position-ready");
+        return;
+    }
+    const targetRange = target ? formatZoneRange(target) : null;
+    txtDistanceFeedback.textContent = targetRange
+        ? `${statusText} · sambungkan untuk lanjut ke Zona ${requiredZone} (${targetRange})`
+        : `${statusText} · sambungkan untuk memulai`;
+}
+
+function isRequiredSensorZoneReached() {
+    const requiredZone = STATE_TO_SENSOR_ZONE[currentState];
+    if (!requiredZone) {
+        return true;
+    }
+
+    if (lockedSensorZone === requiredZone) {
+        return true;
+    }
+
+    if (!isSensorConnected()) {
+        gestureStartTime = null;
+        gestureProgressBar.style.width = "0%";
+        txtHoldStatus.textContent = "Sensor terputus";
+        txtHoldCounter.textContent = "Progres ditahan";
+        return false;
+    }
+
+    if (sensorZone === requiredZone) {
+        lockedSensorZone = requiredZone;
+        return true;
+    }
+
+    gestureStartTime = null;
+    gestureProgressBar.style.width = "0%";
+    txtHoldStatus.textContent = "Jarak belum sesuai";
+    txtHoldCounter.textContent = "Lihat indikator sensor";
+    return false;
 }
 
 function resetSimulation() {
-    clearInterval(cooldownInterval);
+    window.clearInterval(closingCountdownInterval);
+    window.clearTimeout(closingRedirectTimeout);
+    closingCountdownInterval = null;
+    closingRedirectTimeout = null;
+    document.body.classList.remove("is-transitioning-out");
     applyState(STATES.HOME);
 }

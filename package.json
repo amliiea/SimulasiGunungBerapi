@@ -1,0 +1,12 @@
+{
+  "name": "semeru-evacuation-simulation",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "bridge": "node bridge.js"
+  },
+  "dependencies": {
+    "serialport": "^13.0.0",
+    "ws": "^8.23.0"
+  }
+}

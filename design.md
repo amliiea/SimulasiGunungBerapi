@@ -1,6 +1,6 @@
 # Panduan Desain Sistem Antarmuka (Design System & Specification)
 ## Simulasi Edukasi Mitigasi Erupsi Gunung Semeru
-**Dokumen Desain Terpadu (UI-1, UI-2, UI-3) — Versi Revisi Final**
+**Dokumen Desain Terpadu (UI-1 dan UI-2) — Versi Revisi Final**
 
 ---
 
@@ -8,12 +8,12 @@
 
 Aplikasi **Simulasi Edukasi Mitigasi Erupsi Gunung Semeru** merupakan media pembelajaran interaktif berbasis web yang memanfaatkan teknologi *Computer Vision* (MediaPipe Pose & Hand Landmark Detection) untuk mendeteksi gestur tubuh pengguna dalam merespons tahapan evakuasi bencana vulkanik.
 
-Desain antarmuka ini mengintegrasikan tiga layar utama (**UI-1**, **UI-2**, dan **UI-3**) menjadi satu kesatuan sistem visual yang konsisten, estetis, bebas tumpang tindih (*zero component overlapping*), dan ergonomis:
+Desain antarmuka ini mengintegrasikan layar pembuka simulasi (**UI-1**) dan layar simulasi interaktif (**UI-2**) menjadi satu kesatuan sistem visual yang konsisten, estetis, bebas tumpang tindih (*zero component overlapping*), dan ergonomis:
 
 1. **Clean Volcanic Aesthetic**: Menggabungkan warna oranye vulkanik hangat (*safety volcanic orange* `#EA580C` & `#F97316`) sebagai warna aksen dan identitas kebencanaan, dipadukan dengan latar belakang lanskap Gunung Semeru yang dinamis.
-2. **Full Glassmorphism Container**: Seluruh blok konten teks pada layar pembuka (UI-1) dan penutup (UI-3) dibungkus dalam kartu *frosted glass* semi-transparan (`rgba(255, 255, 255, 0.92)` dengan `backdrop-filter: blur(20px)` dan border halus) sehingga seluruh tipografi memiliki kontras tinggi dan terbaca jelas di atas video apa pun tanpa distorsi visual.
+2. **Full Glassmorphism Container**: Blok konten teks pada layar pembuka (UI-1) dibungkus dalam kartu *frosted glass* semi-transparan (`rgba(255, 255, 255, 0.92)` dengan `backdrop-filter: blur(20px)` dan border halus) sehingga seluruh tipografi memiliki kontras tinggi dan terbaca jelas di atas video apa pun tanpa distorsi visual.
 3. **Ergonomis, Non-Overlapping Grid Layout**: Area simulasi interaktif (UI-2) mengadopsi tata letak horizontal terstruktur (*Horizontal Responsive Grid*) di area bawah layar. Kartu Informasi Bahaya (*Hazard Card*) dan Bilah Kontrol Gestur (*Gesture Controller*) berdampingan secara rapi tanpa pernah saling bertumpukan.
-4. **Konsistensi Label & Stepper**: Penulisan setiap tahapan evakuasi menggunakan format *Title Case* yang konsisten (`Start`, `Zona 1`, `Zona 2`, `Zona 3`, `Zona Aman`). Indikator centang (`✓`) **hanya muncul** pada tahapan yang telah selesai dilewati (*completed*), bukan pada tahapan yang belum dilakukan.
+4. **Konsistensi Label & Stepper**: Stepper hanya menampilkan tahapan evakuasi (`Zona 1`, `Zona 2`, `Zona 3`, `Zona Aman`); halaman mulai tidak dihitung sebagai zona. Indikator centang (`✓`) **hanya muncul** pada tahapan yang telah selesai dilewati (*completed*), bukan pada tahapan yang belum dilakukan.
 5. **Tipografi Tunggal yang Bersih**: Seluruh antarmuka menggunakan font tunggal **Poppins** untuk memastikan keselarasan dan keterbacaan modern.
 
 ---
@@ -32,7 +32,7 @@ Desain antarmuka ini mengintegrasikan tiga layar utama (**UI-1**, **UI-2**, dan 
 | **Charcoal Navy (Text)**| `#0F172A` | `rgb(15, 23, 42)` | Tipografi judul utama, angka hitung mundur, teks label tebal |
 | **Slate Gray (Subtext)**| `#475569` | `rgb(71, 85, 105)` | Teks deskripsi materi, instruksi sekunder, label netral |
 | **Light Slate Border** | `#E2E8F0` | `rgb(226, 232, 240)` | Garis pembatas kartu, track progress bar, separator |
-| **Glass White Card** | `rgba(255, 255, 255, 0.92)` | `hsla(0, 0%, 100%, 0.92)` | Kartu pembungkus hero landing, kartu cooldown, surface HUD |
+| **Glass White Card** | `rgba(255, 255, 255, 0.92)` | `hsla(0, 0%, 100%, 0.92)` | Kartu pembungkus hero landing dan surface HUD |
 | **Dark HUD Surface** | `rgba(11, 15, 25, 0.92)` | `hsla(223, 39%, 7%, 0.92)` | Card kamera MediaPipe, skeleton stream container |
 | **Skeleton Cyan/Mint** | `#00FF99` & `#00CCFF` | `rgb(0, 255, 153)` | Garis skeleton pose tubuh & titik landmark tangan |
 
@@ -56,7 +56,7 @@ Sesuai arahan desain, seluruh bagian antarmuka menggunakan keluarga font **Poppi
   * Ukuran: `32px – 40px` (responsif)
   * Ketebalan: `800 (Extra Bold)`
   * Warna: `#0F172A`
-  * Contoh: `Mitigasi Erupsi Gunung Semeru`, `Terima Kasih!`
+  * Contoh: `Mitigasi Erupsi Gunung Semeru`
 * **Card Heading / Sub-headline**:
   * Ukuran: `18px – 22px`
   * Ketebalan: `700 (Bold)`
@@ -92,39 +92,39 @@ Sesuai arahan desain, seluruh bagian antarmuka menggunakan keluarga font **Poppi
 
 ### 4.2. UI-2: Layar Simulasi Aktif (Hazard Simulation)
 * **Konsistensi Top Stepper**:
-  * Format teks konsisten: `Start` › `Zona 1` › `Zona 2` › `Zona 3` › `Zona Aman`.
+  * Format teks konsisten: `Zona 1` › `Zona 2` › `Zona 3` › `Zona Aman`.
   * **Aturan Centang**: Ikon centang (`✓`) disembunyikan secara *default* (`display: none`). Ikon centang hanya ditampilkan saat langkah memiliki kelas `.completed`.
   * Langkah aktif ditandai dengan pill oranye cerah (`background: #EA580C; color: white`).
 * **Top-Right Vision HUD**:
   * Widget kamera MediaPipe minimalis (`720p • 30fps`, garis skeleton `#00FF99`).
-  * Chip telemetri jarak dan posisi menghadap layar.
+  * Informasi jarak sensor ditampilkan di kartu ringkas area bawah, bukan sebagai chip tambahan di bawah kamera.
 * **Tata Letak Bebas Tumpukan (Horizontal Bottom Grid)**:
   * Menggunakan kontainer grid horizontal:
     ```css
     .simulation-bottom-grid {
         position: absolute;
         bottom: 24px;
-        left: 28px;
-        right: 28px;
+        left: 24px;
+        right: 24px;
         display: grid;
-        grid-template-columns: 420px 1fr;
+        grid-template-columns: 410px 1fr;
         gap: 20px;
         align-items: end;
-        z-index: 20;
+        z-index: 25;
     }
     ```
-  * **Kolom Kiri**: *Educational Hazard Card* (Badge KRB, Judul Zona, Radius bahaya, Deskripsi ilmiah, Tindakan Cepat, dan Arah Sebaran).
+  * **Kolom Kiri**: Kartu jarak sensor ringkas yang menampilkan nilai cm secara realtime. Saat belum mencapai zona tujuan, kartu menampilkan rentang target dan arahan maju/mundur; saat posisi sesuai, kartu menampilkan badge KRB, nama zona, dan satu ringkasan tindakan.
+  * Titik acuan kalibrasi: Zona 1 = 50 cm, Zona 2 = 80 cm, Zona 3 = 110 cm, dan Zona Aman = 135 cm. Batas tengah membuat rentang tanpa celah: `35–<65 cm`, `65–<95 cm`, `95–<122.5 cm`, dan `≥122.5 cm`.
+  * Setelah sensor mengonfirmasi posisi pada rentang tujuan, zona dikunci sampai gestur selesai. Perubahan jarak tidak membatalkan progres; kunci dibuka saat simulasi mulai menuju zona berikutnya.
+  * Jika sensor terputus, kartu menampilkan status sambungkan sensor dan progres simulasi ditahan sampai pembacaan kembali tersedia.
+  * Stepper, video, dan materi zona berikutnya baru berpindah setelah sensor membaca rentang zona tujuan.
   * **Kolom Kanan**: *Gesture Controller Bar* (Avatar gestur siluet, Perintah gestur, Durasi penahanan, dan Progress Bar hijau toska).
-  * **Hasil**: Kedua komponen berada berdampingan pada baris bawah tanpa saling tumpang tindih.
+  * Pada layar dengan lebar maksimal `840px`, kedua kartu tersusun vertikal dengan lebar yang mengikuti viewport.
 
 ---
 
-### 4.3. UI-3: Layar Selesai (Completion & Cooldown)
-* **Glassmorphism Central Card**: Membungkus teks `SIMULASI SELESAI`, `Terima Kasih!`, deskripsi hitung mundur, dan lingkaran timer ke dalam kartu kaca terpadu.
-* **Timer Lingkaran Murni (Clean Circular Timer)**:
-  * Lingkaran timer SVG presisi (radius 66, keliling 414.7).
-  * Efek ornamen percikan (*splash/sparkles*) di samping lingkaran **dihapus seutuhnya**, mempertahankan hanya lingkaran progres oranye dan angka hitung mundur yang bersih.
-* **Kartu Siaga Bawah**: Memuat pesan mitigasi kesiapsiagaan dan tombol mulai ulang.
+### 4.3. Akhir Simulasi
+Setelah gestur di Zona Aman berhasil dan narasi keberhasilan selesai diputar, aplikasi langsung kembali ke halaman pembukaan (`pembukaan.html`). Layar cooldown dan hitung mundur tidak ditampilkan.
 
 ---
 
@@ -146,37 +146,44 @@ Sesuai arahan desain, seluruh bagian antarmuka menggunakan keluarga font **Poppi
 
 ```
 [UI-1: LANDING]
-   │  Gestur: Dua Jari (Peace Sign) - Tahan 2 detik
-   ▼
-[BRIEFING EVAKUASI]
-   │  Video Pembekalan Evakuasi (briefing.mp4)
-   │  Gestur: Jempol ke Atas (Thumbs Up) - Tahan 2 detik
+   │  Gestur: Dua Jari (Peace Sign) - Tahan 3 detik
+   │  Penyesuaian jarak ke Zona 1 melalui sensor dan audio maju/mundur
+   │  Posisi sesuai: VO_18_Posisi_Sesuai.mp3
    ▼
 [ERUPSI GUNUNG SEMERU]
-   │  Video Erupsi Letusan Awal (gunung_meletus.mp4) - Peringatan Darurat
+   │  Video gunung_meletus.mp4 berulang bersama VO_04_Erupsi_Vulkanik.mp3
    ▼
 [UI-2: ZONA 1 - LONTARAN MATERIAL] (KRB III, Radius ≤ 5 km)
    │  Video: lontaran_material.mp4
+   │  Instruksi: VO_05_Gestur_Perlindungan_Kepala.mp3
    │  Tindakan Cepat: Lindungi kepala dari batu pijar & abu vulkanik
-   │  Gestur: Angkat Kedua Tangan di Atas Kepala - Tahan 5 detik
+   │  Gestur: Angkat Kedua Tangan di Atas Kepala - Tahan 3 detik
+   │  Berhasil: VO_20_Gerakan_Berhasil.mp3, lalu VO_06_Menuju_Zona_2.mp3
    ▼
 [UI-2: ZONA 2 - AWAN PANAS GUGURAN] (KRB II, Radius ≤ 13 km)
    │  Video: awan_panas.mp4
+   │  Posisi sesuai: VO_18_Posisi_Sesuai.mp3
+   │  Arahan: VO_07_Awan_Panas.mp3 lalu VO_08_Gestur_Arah_Evakuasi.mp3
    │  Tindakan Cepat: Jauhi aliran piroklastik Besuk Kobokan, evakuasi horizontal
-   │  Gestur: Arahkan Satu Tangan ke Kanan - Tahan 5 detik
+   │  Gestur: Arahkan Satu Tangan ke Kanan - Tahan 3 detik
+   │  Berhasil: VO_20_Gerakan_Berhasil.mp3, lalu VO_09_Menuju_Zona_3.mp3
    ▼
 [UI-2: ZONA 3 - LAHAR HUJAN] (KRB I, Radius ≤ 17 km)
    │  Video: lahar_hujan.mp4
+   │  Posisi sesuai: VO_18_Posisi_Sesuai.mp3
+   │  Arahan: VO_10_Lahar_Hujan.mp3 lalu VO_11_Gestur_Larangan_Melintas.mp3
    │  Tindakan Cepat: Menjauh dari daerah aliran sungai & jembatan rentan
-   │  Gestur: Silangkan Kedua Tangan di Depan Dada (Crossed Arms) - Tahan 5 detik
+   │  Gestur: Silangkan Kedua Tangan di Depan Dada (Crossed Arms) - Tahan 3 detik
+   │  Berhasil: VO_20_Gerakan_Berhasil.mp3, lalu VO_12_Menuju_Zona_Aman.mp3
    ▼
 [ZONA AMAN - POSKO PENGUNGSIAN] (Radius > 20 km)
    │  Video: zona_aman.mp4
+   │  Posisi sesuai: VO_18_Posisi_Sesuai.mp3
+   │  Arahan: VO_13_Zona_Aman.mp3
    │  Tindakan Cepat: Berkumpul di posko aman, laporkan diri ke petugas
-   │  Gestur: Lambaikan Tangan (Wave)
+   │  Gestur: Telapak Tangan Terbuka - Tahan 3 detik
    ▼
-[UI-3: SELESAI / COOLDOWN]
-   │  Hitung mundur 20 detik (Clean Circular Progress Clock)
+   │  Berhasil: VO_20_Gerakan_Berhasil.mp3
    ▼
-[RESET OTOMATIS KE UI-1]
+[KEMBALI LANGSUNG KE HALAMAN PEMBUKAAN]
 ```

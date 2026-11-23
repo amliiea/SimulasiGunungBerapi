@@ -77,6 +77,8 @@ export function detectPointHorizontal(pose) {
         return false;
     }
 
+    // Terima satu atau kedua lengan sepanjang lengan sejajar kamera,
+    // baik menunjuk ke kiri maupun ke kanan.
     const arms = [
         [pose[11], pose[13], pose[15]],
         [pose[12], pose[14], pose[16]]
@@ -130,53 +132,92 @@ export function detectCrossedArms(pose) {
     return wristsCrossed && handsAtChest;
 }
 
-let waveHistory = [];
-
-export function detectWave(hands) {
-    if (!hands?.length || !isHandLandmarks(hands[0])) {
-        waveHistory = [];
+export function detectBothArmsSpread(pose) {
+    if (!pose || pose.length < 17) {
         return false;
     }
 
-    const wrist = hands[0][0];
-    waveHistory.push({ x: wrist.x, y: wrist.y });
-    if (waveHistory.length > 30) {
-        waveHistory.shift();
-    }
-    if (waveHistory.length < 12) {
+    const leftShoulder = pose[11];
+    const rightShoulder = pose[12];
+    const leftElbow = pose[13];
+    const rightElbow = pose[14];
+    const leftWrist = pose[15];
+    const rightWrist = pose[16];
+
+    if (
+        ![
+            leftShoulder,
+            rightShoulder,
+            leftElbow,
+            rightElbow,
+            leftWrist,
+            rightWrist
+        ].every(point => isVisible(point))
+    ) {
         return false;
     }
 
-    const xValues = waveHistory.map(point => point.x);
-    const yValues = waveHistory.map(point => point.y);
-    const horizontalRange = Math.max(...xValues) - Math.min(...xValues);
-    const verticalRange = Math.max(...yValues) - Math.min(...yValues);
+    const armsSpreadOut =
+        leftWrist.x < leftShoulder.x - 0.12 &&
+        rightWrist.x > rightShoulder.x + 0.12;
 
-    if (horizontalRange < 0.12 || verticalRange > horizontalRange * 0.9) {
-        return false;
-    }
+    const armsHorizontal =
+        Math.abs(leftWrist.y - leftShoulder.y) < 0.22 &&
+        Math.abs(rightWrist.y - rightShoulder.y) < 0.22;
 
-    let directionChanges = 0;
-    let previousDirection = 0;
-    let anchorX = waveHistory[0].x;
+    const elbowsExtended =
+        Math.abs(leftElbow.x - leftShoulder.x) > 0.08 &&
+        Math.abs(rightElbow.x - rightShoulder.x) > 0.08;
 
-    for (let index = 2; index < waveHistory.length; index++) {
-        const delta = waveHistory[index].x - anchorX;
-        if (Math.abs(delta) < 0.025) {
-            continue;
-        }
-
-        const direction = Math.sign(delta);
-        if (previousDirection !== 0 && direction !== previousDirection) {
-            directionChanges++;
-        }
-        previousDirection = direction;
-        anchorX = waveHistory[index].x;
-    }
-
-    return directionChanges >= 3;
+    return armsSpreadOut && armsHorizontal && elbowsExtended;
 }
 
-export function resetWaveDetection() {
-    waveHistory = [];
+export function detectOneHandRaised(pose) {
+    if (!pose || pose.length < 17) {
+        return false;
+    }
+
+    const arms = [
+        [pose[11], pose[15]],
+        [pose[12], pose[16]]
+    ];
+
+    return arms.some(([shoulder, wrist]) => {
+        if (![shoulder, wrist].every(point => isVisible(point))) {
+            return false;
+        }
+
+        return wrist.y < shoulder.y + 0.05;
+    });
+}
+
+// Telapak tangan terbuka (5 jari), tanpa gerakan
+export function detectOpenPalm(hands) {
+    if (!hands?.length) {
+        return false;
+    }
+
+    return hands.some(hand => {
+        if (!isHandLandmarks(hand)) {
+            return false;
+        }
+
+        // Empat jari: ujung harus lebih tinggi dari sendi tengah (PIP)
+        const fingersUp =
+            hand[8].y < hand[6].y &&
+            hand[12].y < hand[10].y &&
+            hand[16].y < hand[14].y &&
+            hand[20].y < hand[18].y;
+
+        // Jempol: ujung harus menjauh dari pangkal telunjuk (MCP)
+        const palmSize = Math.hypot(
+            hand[9].x - hand[0].x,
+            hand[9].y - hand[0].y
+        );
+        const thumbSpread =
+            Math.hypot(hand[4].x - hand[5].x, hand[4].y - hand[5].y) >
+            palmSize * 0.5;
+
+        return fingersUp && thumbSpread;
+    });
 }
