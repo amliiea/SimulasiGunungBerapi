@@ -24,6 +24,9 @@ let socket = null;
 let isConnected = false;
 let arduinoConnected = false;
 let currentDistance = null;
+let lastValidDistance = null;
+let lastValidTime = 0;
+const DROPOUT_GRACE_MS = 750; // Tahan pembacaan terakhir selama 750ms saat ada pantulan ultrasonik yang terlewat
 let updateCallback = null;
 
 export function isSensorConnected() {
@@ -54,7 +57,21 @@ function initWebSocket() {
             try {
                 const data = JSON.parse(event.data);
                 arduinoConnected = Boolean(data.arduino);
-                currentDistance = typeof data.distance === "number" && Number.isFinite(data.distance) ? data.distance : null;
+                
+                const now = Date.now();
+                if (typeof data.distance === "number" && Number.isFinite(data.distance)) {
+                    currentDistance = data.distance;
+                    lastValidDistance = data.distance;
+                    lastValidTime = now;
+                } else {
+                    // Jika Arduino kirim null (miss pantulan saat bergerak), beri grace period 750ms
+                    if (lastValidDistance !== null && (now - lastValidTime < DROPOUT_GRACE_MS)) {
+                        currentDistance = lastValidDistance;
+                    } else {
+                        currentDistance = null;
+                    }
+                }
+
                 if (updateCallback) {
                     updateCallback(currentDistance, arduinoConnected);
                 }
@@ -67,6 +84,7 @@ function initWebSocket() {
             isConnected = false;
             arduinoConnected = false;
             currentDistance = null;
+            lastValidDistance = null;
             if (updateCallback) updateCallback(null, false);
             // Reconnect otomatis setiap 2.5 detik jika bridge sempat tertutup
             setTimeout(initWebSocket, 2500);

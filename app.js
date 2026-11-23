@@ -1276,18 +1276,37 @@ function handleSensorUpdate(distance) {
     processZonePosition();
 }
 
+function calculateEvacuationKm(cm) {
+    if (cm === null || !Number.isFinite(cm)) {
+        return ZONE_KM_MAP[currentState] || "5";
+    }
+    if (cm < 35.0) {
+        return Math.max(1.0, (cm / 35.0) * 4.9).toFixed(1);
+    } else if (cm < 65.0) {
+        const progress = (cm - 35.0) / (65.0 - 35.0);
+        return (5.0 + progress * 7.9).toFixed(1);
+    } else if (cm < 95.0) {
+        const progress = (cm - 65.0) / (95.0 - 65.0);
+        return (13.0 + progress * 3.9).toFixed(1);
+    } else if (cm < 122.5) {
+        const progress = (cm - 95.0) / (122.5 - 95.0);
+        return (17.0 + progress * 2.9).toFixed(1);
+    } else {
+        const progress = Math.min(1.0, (cm - 122.5) / 50.0);
+        return (20.0 + progress * 5.0).toFixed(1);
+    }
+}
+
 function updateSensorDistanceLabel() {
     zoneEducationSummary.hidden = true;
     hazardInfoCard.classList.remove("is-position-ready");
 
     const labelDistanceKm = document.getElementById("labelDistanceKm");
-    if (labelDistanceKm) {
-        labelDistanceKm.textContent = ZONE_KM_MAP[currentState] || "5";
-    }
 
     if (isSensorConnected()) {
         if (sensorDistanceCm === null) {
             labelDistance.textContent = "-- cm";
+            if (labelDistanceKm) labelDistanceKm.textContent = ZONE_KM_MAP[currentState] || "5";
             txtDistanceFeedback.textContent = "Sensor aktif · menunggu jarak";
             return;
         }
@@ -1296,6 +1315,10 @@ function updateSensorDistanceLabel() {
             ? `${sensorDistanceCm} cm`
             : `${sensorDistanceCm.toFixed(1)} cm`;
         labelDistance.textContent = distanceLabel;
+
+        if (labelDistanceKm) {
+            labelDistanceKm.textContent = calculateEvacuationKm(sensorDistanceCm);
+        }
 
         if (currentState === STATES.ERUPTION && !pendingZoneTransition) {
             txtDistanceFeedback.textContent = lockedSensorZone === 1

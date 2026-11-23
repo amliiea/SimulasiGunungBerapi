@@ -49,16 +49,32 @@ async function findArduinoPort() {
     return fallbackMatch ? fallbackMatch.path : null;
 }
 
+let lastLoggedDistance = null;
+let lastLogTime = 0;
+
 function handleLine(line) {
     const text = line.trim();
     if (!text) return;
 
-    console.log(`Serial Arduino: ${text}`);
     const m = text.match(/Jarak:\s*([\d.]+)\s*cm/);
     if (m) {
-        broadcast({ arduino: true, distance: parseFloat(m[1]) });
+        const dist = parseFloat(m[1]);
+        broadcast({ arduino: true, distance: dist });
+
+        const now = Date.now();
+        // Log ke terminal jika jarak bergeser > 1 cm atau minimal tiap 800ms (cegah lag rendering console)
+        if (lastLoggedDistance === null || Math.abs(dist - lastLoggedDistance) >= 1.0 || now - lastLogTime >= 800) {
+            console.log(`[Sensor] Jarak: ${dist.toFixed(1)} cm | ${text.includes('|') ? text.split('|')[1].trim() : 'Aktif'}`);
+            lastLoggedDistance = dist;
+            lastLogTime = now;
+        }
     } else if (text.includes('tidak terdeteksi')) {
         broadcast({ arduino: true, distance: null });
+        const now = Date.now();
+        if (now - lastLogTime >= 1000) {
+            console.log(`[Sensor] Objek tidak terdeteksi`);
+            lastLogTime = now;
+        }
     }
 }
 
