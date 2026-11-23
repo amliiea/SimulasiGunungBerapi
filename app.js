@@ -1282,9 +1282,8 @@ function updateSensorDistanceLabel() {
 
     const labelDistanceKm = document.getElementById("labelDistanceKm");
     if (labelDistanceKm) {
-        // Skala kilometer mengikuti zona aktif atau target transisi (5 km, 13 km, 17 km, >20 km)
-        const targetState = pendingZoneTransition || currentState;
-        labelDistanceKm.textContent = ZONE_KM_MAP[targetState] || "5";
+        // Skala kilometer murni mengikuti zona yang sedang aktif saat ini
+        labelDistanceKm.textContent = ZONE_KM_MAP[currentState] || "5";
     }
 
     if (isSensorConnected()) {
