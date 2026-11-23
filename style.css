@@ -86,7 +86,6 @@ html.from-opening body {
     background-color: #1e293b;
 }
 
-.bg-video,
 #bgVideo {
     position: absolute;
     top: 50%;
@@ -97,13 +96,7 @@ html.from-opening body {
     height: auto;
     transform: translate(-50%, -50%);
     object-fit: cover;
-    opacity: 0;
-    transition: opacity 1.1s cubic-bezier(0.4, 0, 0.2, 1);
-    pointer-events: none;
-}
-
-.bg-video.active {
-    opacity: 1;
+    transition: opacity 0.5s ease;
 }
 
 .video-overlay-gradient {

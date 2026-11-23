@@ -156,11 +156,7 @@ const ZONE_CONTENT = Object.freeze({
 /* ==========================================================================
    DOM ELEMENTS
    ========================================================================== */
-const bgVideoA = document.getElementById("bgVideoA") || document.getElementById("bgVideo");
-const bgVideoB = document.getElementById("bgVideoB");
-let currentBgVideo = bgVideoA;
-let standbyBgVideo = bgVideoB;
-const bgVideo = currentBgVideo;
+const bgVideo = document.getElementById("bgVideo");
 const videoFallback = document.getElementById("videoFallback");
 const calibrationAudio = document.getElementById("calibrationAudio");
 
@@ -1232,151 +1228,37 @@ function renderAvatarSilhouette(type, imageSrc = null, imageAlt = "") {
 }
 
 /* ==========================================================================
-   VIDEO BACKGROUND PLAYBACK (DUAL-PLAYER DISSOLVE & AUDIO CROSSFADE)
+   VIDEO BACKGROUND PLAYBACK
    ========================================================================== */
-let currentVideoSrc = "";
-let isLooping = false;
-let loopCheckInterval = null;
-
-function fadeMediaAudio(mediaEl, fromVol, toVol, durationMs = 800) {
-    if (!mediaEl) return;
-    const steps = 16;
-    const stepDuration = durationMs / steps;
-    let step = 0;
-    const timer = setInterval(() => {
-        step++;
-        const factor = step / steps;
-        try {
-            mediaEl.volume = Math.max(0, Math.min(1, fromVol + (toVol - fromVol) * factor));
-        } catch {}
-        if (step >= steps) {
-            clearInterval(timer);
-            try { mediaEl.volume = toVol; } catch {}
-        }
-    }, stepDuration);
-}
-
 function playBackgroundVideo(src, loop = true, onEnded = null) {
     activeVideoRequestId++;
     const thisRequestId = activeVideoRequestId;
-    isLooping = loop;
-    clearInterval(loopCheckInterval);
 
-    if (!standbyBgVideo) {
-        if (currentBgVideo) {
-            currentBgVideo.loop = loop;
-            currentBgVideo.muted = audioMuted;
-            currentBgVideo.src = src;
-            currentBgVideo.classList.add("active");
-            currentBgVideo.play().catch(e => console.warn("Autoplay notice:", e.message));
-        }
-        return;
-    }
+    bgVideo.loop = loop;
+    bgVideo.muted = audioMuted;
+    bgVideo.src = src;
 
-    standbyBgVideo.src = src;
-    standbyBgVideo.muted = audioMuted;
-    standbyBgVideo.volume = audioMuted ? 0 : 0;
-    standbyBgVideo.currentTime = 0;
-
-    videoFallback.style.opacity = "0";
-
-    const performSwap = () => {
-        standbyBgVideo.classList.add("active");
-        currentBgVideo.classList.remove("active");
-
-        if (!audioMuted) {
-            fadeMediaAudio(standbyBgVideo, 0, 1, 900);
-            fadeMediaAudio(currentBgVideo, currentBgVideo.volume || 1, 0, 900);
-        }
-
-        setTimeout(() => {
-            currentBgVideo.pause();
-            currentBgVideo.currentTime = 0;
-            const temp = currentBgVideo;
-            currentBgVideo = standbyBgVideo;
-            standbyBgVideo = temp;
-            currentVideoSrc = src;
-
-            if (loop) {
-                startLoopDissolveMonitor(thisRequestId);
-            }
-        }, 1000);
-    };
-
-    standbyBgVideo.play()
-        .then(performSwap)
-        .catch(err => {
-            console.warn("Autoplay notice:", err.message);
-            currentBgVideo.src = src;
-            currentBgVideo.classList.add("active");
-            currentBgVideo.play().catch(() => {});
-            currentVideoSrc = src;
-            if (loop) startLoopDissolveMonitor(thisRequestId);
-        });
-
-    currentBgVideo.onended = () => {
-        if (thisRequestId === activeVideoRequestId && !loop && onEnded) {
+    bgVideo.onended = () => {
+        if (thisRequestId === activeVideoRequestId && onEnded) {
             onEnded();
         }
     };
 
-    standbyBgVideo.onerror = currentBgVideo.onerror = () => {
+    bgVideo.onerror = () => {
         console.warn(`Video gagal dimuat (${src}), beralih ke fallback visual.`);
         videoFallback.style.opacity = "1";
         if (onEnded) setTimeout(onEnded, 3000);
     };
-}
 
-function startLoopDissolveMonitor(requestId) {
-    clearInterval(loopCheckInterval);
-    loopCheckInterval = setInterval(() => {
-        if (requestId !== activeVideoRequestId || !isLooping) {
-            clearInterval(loopCheckInterval);
-            return;
-        }
-        if (currentBgVideo && currentBgVideo.duration && !currentBgVideo.paused) {
-            const timeLeft = currentBgVideo.duration - currentBgVideo.currentTime;
-            if (timeLeft <= 1.25 && timeLeft > 0.05) {
-                clearInterval(loopCheckInterval);
-                triggerDissolveLoop(requestId);
-            }
-        }
-    }, 120);
-}
-
-function triggerDissolveLoop(requestId) {
-    if (requestId !== activeVideoRequestId || !isLooping) return;
-    standbyBgVideo.src = currentVideoSrc;
-    standbyBgVideo.muted = audioMuted;
-    standbyBgVideo.currentTime = 0;
-    standbyBgVideo.volume = audioMuted ? 0 : 0;
-
-    standbyBgVideo.play().then(() => {
-        standbyBgVideo.classList.add("active");
-        currentBgVideo.classList.remove("active");
-
-        if (!audioMuted) {
-            fadeMediaAudio(standbyBgVideo, 0, 1, 900);
-            fadeMediaAudio(currentBgVideo, currentBgVideo.volume || 1, 0, 900);
-        }
-
-        setTimeout(() => {
-            currentBgVideo.pause();
-            currentBgVideo.currentTime = 0;
-            const temp = currentBgVideo;
-            currentBgVideo = standbyBgVideo;
-            standbyBgVideo = temp;
-            startLoopDissolveMonitor(requestId);
-        }, 1100);
-    }).catch(() => {
-        startLoopDissolveMonitor(requestId);
+    videoFallback.style.opacity = "0";
+    bgVideo.play().catch(err => {
+        console.warn("Autoplay notice:", err.message);
     });
 }
 
 function toggleSound() {
     audioMuted = !audioMuted;
-    if (currentBgVideo) currentBgVideo.muted = audioMuted;
-    if (standbyBgVideo) standbyBgVideo.muted = audioMuted;
+    bgVideo.muted = audioMuted;
     if (devSoundStatus) {
         devSoundStatus.textContent = audioMuted ? "Mati" : "Aktif";
         devSoundStatus.style.color = audioMuted ? "#94a3b8" : "#10B981";
