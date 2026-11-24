@@ -8,16 +8,19 @@ export const ZONES = [
 ];
 
 const WS_URL = 'ws://127.0.0.1:8080';
-const STALE_MS = 1500; // data dianggap basi kalau lebih lama dari ini
 
 let latest = { distance: null, time: 0 };
+let lastValidDistance = null;
+let lastValidTime = 0;
+const DROPOUT_GRACE_MS = 1500; // Tahan jarak terakhir jika ada pantulan ultrasonik yang terlewat
+
 let bridgeConnected = false;
 let arduinoConnected = false;
 let onUpdate = null;
 let started = false;
 
 export function isSensorConnected() {
-    return bridgeConnected && arduinoConnected && Date.now() - latest.time < STALE_MS;
+    return bridgeConnected && arduinoConnected;
 }
 
 // 'ok' | 'arduino-off' | 'bridge-off', berguna untuk teks status di HUD
@@ -28,7 +31,7 @@ export function getSensorStatus() {
 }
 
 export function getDistance() {
-    return isSensorConnected() ? latest.distance : null;
+    return isSensorConnected() ? (latest.distance ?? lastValidDistance) : null;
 }
 
 export function getZoneFromDistance(cm) {
@@ -47,22 +50,43 @@ export function connectSensor(callback) {
 function openSocket() {
     const ws = new WebSocket(WS_URL);
 
-    ws.onopen = () => { bridgeConnected = true; };
+    ws.onopen = () => {
+        bridgeConnected = true;
+        console.log("WebSocket terhubung ke bridge sensor.");
+    };
 
     ws.onmessage = event => {
         let msg;
         try { msg = JSON.parse(event.data); } catch { return; }
 
         arduinoConnected = Boolean(msg.arduino);
-        const distance = typeof msg.distance === 'number' ? msg.distance : null;
-        latest = { distance, time: Date.now() };
+        const now = Date.now();
 
-        if (onUpdate) onUpdate(distance, getZoneFromDistance(distance));
+        let dist = null;
+        if (typeof msg.distance === 'number' && Number.isFinite(msg.distance)) {
+            dist = msg.distance;
+            lastValidDistance = dist;
+            lastValidTime = now;
+        } else {
+            // Jika pantulan ultrasonik miss sesaat saat tubuh bergerak, tahan nilai terakhir
+            if (lastValidDistance !== null && (now - lastValidTime < DROPOUT_GRACE_MS)) {
+                dist = lastValidDistance;
+            } else {
+                dist = null;
+            }
+        }
+
+        latest = { distance: dist, time: now };
+
+        if (onUpdate) {
+            onUpdate(dist, getZoneFromDistance(dist));
+        }
     };
 
     ws.onclose = () => {
         bridgeConnected = false;
         arduinoConnected = false;
+        if (onUpdate) onUpdate(null, 0);
         setTimeout(openSocket, 2000); // otomatis coba sambung lagi
     };
 
