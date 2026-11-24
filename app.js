@@ -1268,9 +1268,9 @@ function toggleSound() {
 /* ==========================================================================
    TELEMETRY & DISTANCE
    ========================================================================== */
-function handleSensorUpdate(distance) {
+function handleSensorUpdate(distance, zone) {
     sensorDistanceCm = Number.isFinite(distance) ? distance : null;
-    sensorZone = getZoneFromDistance(sensorDistanceCm);
+    sensorZone = typeof zone === "number" ? zone : getZoneFromDistance(sensorDistanceCm);
 
     updateSensorDistanceLabel();
     processZonePosition();

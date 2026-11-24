@@ -1,102 +1,70 @@
-/**
- * SENSOR.JS: WebSocket Client for Arduino HC-SR04 Ultrasonic Sensor
- * Connects to bridge.js at ws://127.0.0.1:8080
- */
-
-const WS_URL = "ws://127.0.0.1:8080";
-
+// sensor.js: menerima jarak dari bridge lewat WebSocket
 export const ZONES = [
-    { id: 1, min: 35.0, max: 65.0 },       // Zona 1 (Erupsi): 35 - 65 cm
-    { id: 2, min: 65.0, max: 95.0 },       // Zona 2 (Awan Panas): 65 - 95 cm
-    { id: 3, min: 95.0, max: 122.5 },      // Zona 3 (Lahar Dingin): 95 - 122.5 cm
-    { id: 4, min: 122.5, max: Infinity }   // Zona 4 (Aman): >= 122.5 cm
+    // Targets are centered on 50, 80, 110, and 135 cm; midpoint edges avoid gaps/overlap.
+    { id: 1, min: 35, max: 65 },
+    { id: 2, min: 65, max: 95 },
+    { id: 3, min: 95, max: 122.5 },
+    { id: 4, min: 122.5, max: Infinity }
 ];
 
-export function getZoneFromDistance(cm) {
-    if (cm === null || !Number.isFinite(cm)) return 0;
-    for (const z of ZONES) {
-        if (cm >= z.min && cm < z.max) return z.id;
-    }
-    return 0;
-}
+const WS_URL = 'ws://127.0.0.1:8080';
+const STALE_MS = 1500; // data dianggap basi kalau lebih lama dari ini
 
-let socket = null;
-let isConnected = false;
+let latest = { distance: null, time: 0 };
+let bridgeConnected = false;
 let arduinoConnected = false;
-let currentDistance = null;
-let lastValidDistance = null;
-let lastValidTime = 0;
-const DROPOUT_GRACE_MS = 750; // Tahan pembacaan terakhir selama 750ms saat ada pantulan ultrasonik yang terlewat
-let updateCallback = null;
+let onUpdate = null;
+let started = false;
 
 export function isSensorConnected() {
-    return isConnected && arduinoConnected;
+    return bridgeConnected && arduinoConnected && Date.now() - latest.time < STALE_MS;
 }
 
+// 'ok' | 'arduino-off' | 'bridge-off', berguna untuk teks status di HUD
 export function getSensorStatus() {
-    if (!isConnected) return "bridge-off";
-    if (!arduinoConnected) return "arduino-off";
-    return "online";
+    if (!bridgeConnected) return 'bridge-off';
+    if (!arduinoConnected) return 'arduino-off';
+    return 'ok';
 }
 
-export function connectSensor(onUpdate) {
-    updateCallback = onUpdate;
-    initWebSocket();
+export function getDistance() {
+    return isSensorConnected() ? latest.distance : null;
 }
 
-function initWebSocket() {
-    try {
-        socket = new WebSocket(WS_URL);
+export function getZoneFromDistance(cm) {
+    if (!Number.isFinite(cm)) return 0;
+    const zone = ZONES.find(z => cm >= z.min && cm < z.max);
+    return zone ? zone.id : 9;
+}
 
-        socket.onopen = () => {
-            isConnected = true;
-            console.log("WebSocket terhubung ke bridge sensor HC-SR04 (ws://127.0.0.1:8080)");
-        };
+export function connectSensor(callback) {
+    onUpdate = callback;
+    if (started) return;
+    started = true;
+    openSocket();
+}
 
-        socket.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                arduinoConnected = Boolean(data.arduino);
-                
-                const now = Date.now();
-                if (typeof data.distance === "number" && Number.isFinite(data.distance)) {
-                    currentDistance = data.distance;
-                    lastValidDistance = data.distance;
-                    lastValidTime = now;
-                } else {
-                    // Jika Arduino kirim null (miss pantulan saat bergerak), beri grace period 750ms
-                    if (lastValidDistance !== null && (now - lastValidTime < DROPOUT_GRACE_MS)) {
-                        currentDistance = lastValidDistance;
-                    } else {
-                        currentDistance = null;
-                    }
-                }
+function openSocket() {
+    const ws = new WebSocket(WS_URL);
 
-                if (updateCallback) {
-                    updateCallback(currentDistance, arduinoConnected);
-                }
-            } catch (err) {
-                console.error("Error parsing data sensor:", err);
-            }
-        };
+    ws.onopen = () => { bridgeConnected = true; };
 
-        socket.onclose = () => {
-            isConnected = false;
-            arduinoConnected = false;
-            currentDistance = null;
-            lastValidDistance = null;
-            if (updateCallback) updateCallback(null, false);
-            // Reconnect otomatis setiap 2.5 detik jika bridge sempat tertutup
-            setTimeout(initWebSocket, 2500);
-        };
+    ws.onmessage = event => {
+        let msg;
+        try { msg = JSON.parse(event.data); } catch { return; }
 
-        socket.onerror = () => {
-            // Diserahkan ke onclose untuk auto-retry
-        };
-    } catch {
-        isConnected = false;
+        arduinoConnected = Boolean(msg.arduino);
+        const distance = typeof msg.distance === 'number' ? msg.distance : null;
+        latest = { distance, time: Date.now() };
+
+        if (onUpdate) onUpdate(distance, getZoneFromDistance(distance));
+    };
+
+    ws.onclose = () => {
+        bridgeConnected = false;
         arduinoConnected = false;
-        setTimeout(initWebSocket, 2500);
-    }
-}
+        setTimeout(openSocket, 2000); // otomatis coba sambung lagi
+    };
 
+    ws.onerror = () => ws.close();
+}
